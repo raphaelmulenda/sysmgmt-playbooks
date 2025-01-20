@@ -1,6 +1,6 @@
 ---
 - name: Apply Kubernetes Prerequisites
-  hosts: k8s_flannel_issue]
+  hosts: k8s_flannel_issue
   become: true
   roles:
-    - k8s_prerequisites
+    - { role: /home/raphael/Documents/Sysadmin/Ansible-playbooks/sysmgmt-playbooks/roles/k8s_prerequisites }
