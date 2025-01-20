@@ -1,0 +1,42 @@
+---
+- name: Configure persistent loading of modules
+  copy:
+    content: |
+      overlay
+      br_netfilter
+    dest: /etc/modules-load.d/k8s.conf
+    mode: '0644'
+
+- name: Load modules at runtime
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - overlay
+    - br_netfilter
+
+- name: Ensure sysctl params are set
+  copy:
+    content: |
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.bridge.bridge-nf-call-iptables = 1
+      net.ipv4.ip_forward = 1
+    dest: /etc/sysctl.d/kubernetes.conf
+    mode: '0644'
+
+- name: Reload sysctl configs
+  command: sysctl --system
+  register: sysctl_result
+  failed_when: sysctl_result.rc != 0
+
+- name: Restart containerd
+  systemd:
+    name: containerd
+    state: restarted
+    enabled: yes
+
+- name: Check containerd status
+  command: systemctl status containerd
+  register: containerd_status
+  failed_when: containerd_status.rc != 0
+  changed_when: false
