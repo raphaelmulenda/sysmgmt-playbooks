@@ -1,0 +1,6 @@
+# playbook.yml
+---
+- hosts: proxmox_nodes
+  become: true
+  roles:
+    -  { role: /home/raphael/Documents/Sysadmin/Ansible-playbooks/sysmgmt-playbooks/roles/remove_ceph }
