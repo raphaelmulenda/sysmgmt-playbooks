@@ -1,0 +1,43 @@
+---
+- name: Configure pending packages
+  command: dpkg --configure -a
+  become: true
+
+- name: Clean up the package database
+  apt:
+    autoclean: yes
+  become: true
+
+- name: Remove unnecessary packages
+  apt:
+    autoremove: yes
+    purge: yes
+  become: true
+
+- name: Force upgrade of specific deferred packages
+  apt:
+    name:
+      - grub-common
+      - grub-efi-amd64-bin
+      - grub-efi-amd64-signed
+      - grub-pc
+      - grub-pc-bin
+      - grub2-common
+    state: latest
+    force: yes
+  become: true
+
+- name: Check for updates
+  apt:
+    update_cache: yes
+  become: true
+
+- name: Perform system upgrade
+  apt:
+    upgrade: dist
+  become: true
+  register: upgrade_result
+
+- name: Notify handler if upgrade occurred
+  notify: system_reboot
+  when: upgrade_result.changed

@@ -1,0 +1,6 @@
+---
+- name: system_reboot
+  reboot:
+    msg: "System is rebooting after upgrade"
+    reboot_timeout: 600
+  become: true

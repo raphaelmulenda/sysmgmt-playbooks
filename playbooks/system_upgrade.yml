@@ -1,0 +1,6 @@
+---
+- name: System Upgrade and Cleanup
+  hosts: all  # or specific group like 'servers'
+  become: true
+  roles:
+    - { role: /home/raphael/Documents/Sysadmin/Ansible-playbooks/sysmgmt-playbooks/roles/system_upgrade } 

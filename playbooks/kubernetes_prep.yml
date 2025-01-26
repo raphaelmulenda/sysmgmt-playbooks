@@ -1,0 +1,8 @@
+---
+- name: Prepare nodes for Kubernetes
+  hosts: all
+  become: true  # This is needed for sudo privileges
+  gather_facts: true  # Gather facts to get system info like OS version
+
+  roles:
+    - { role: /home/raphael/Documents/Sysadmin/Ansible-playbooks/sysmgmt-playbooks/roles/kubernetes_prep } 
