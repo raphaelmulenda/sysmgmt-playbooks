@@ -11,6 +11,11 @@
     - ceph-osd@*
     - ceph.target
 
+- name: Ensure No Ceph Processes
+  become: yes
+  shell: pkill -f ceph || true
+  ignore_errors: yes  # This command will fail if no ceph processes are found, hence we ignore errors
+
 - name: Remove Ceph packages
   become: yes
   apt:
@@ -66,3 +71,7 @@
   loop:
     - pvedaemon
     - pve-cluster
+
+- name: Reboot the system
+  become: yes
+  reboot:
