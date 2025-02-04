@@ -1,37 +1,68 @@
 ---
-- name: Stop Ceph services
+- name: Stop Ceph services on RMULENDA
   become: yes
   systemd:
     name: "{{ item }}"
     state: stopped
     enabled: no
   loop:
-    # Services on RMULENDA
     - ceph-crash.service
     - ceph-mgr@RMULENDA.service
     - ceph-mon@RMULENDA.service
     - ceph-osd@0.service
     - ceph-volume@lvm-0-27d5f11a-2342-4277-bedd-cafccb7f368f.service
     - ceph-volume@lvm-0-3b98dfa1-8056-47cf-a857-d46e855330e3.service
-    # Services on RMULENDA-SV1
-    - { name: 'ceph-crash.service', when: inventory_hostname == 'RMULENDA-SV1' }
-    # Services on RMULENDA-SV2
-    - { name: 'ceph-crash.service', when: inventory_hostname == 'RMULENDA-SV2' }
-    - { name: 'ceph-mon@RMULENDA-SV2.service', when: inventory_hostname == 'RMULENDA-SV2' }
-    - { name: 'ceph-osd@1.service', when: inventory_hostname == 'RMULENDA-SV2' }
-    - { name: 'ceph-volume@lvm-1-93d50388-3ce7-43c1-9011-366ab230d746.service', when: inventory_hostname == 'RMULENDA-SV2' }
-    # Services on RMULENDA-SV3
-    - { name: 'ceph-crash.service', when: inventory_hostname == 'RMULENDA-SV3' }
-    - { name: 'ceph-mon@RMULENDA-SV3.service', when: inventory_hostname == 'RMULENDA-SV3' }
-    - { name: 'ceph-osd@2.service', when: inventory_hostname == 'RMULENDA-SV3' }
-    - { name: 'ceph-volume@lvm-2-7c46b0f9-6088-4dad-ae3e-79df49785a10.service', when: inventory_hostname == 'RMULENDA-SV3' }
-    # Common target for all hosts
+  when: inventory_hostname == 'RMULENDA'
+
+- name: Stop Ceph services on RMULENDA-SV1
+  become: yes
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  loop:
+    - ceph-crash.service
+  when: inventory_hostname == 'RMULENDA-SV1'
+
+- name: Stop Ceph services on RMULENDA-SV2
+  become: yes
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  loop:
+    - ceph-crash.service
+    - ceph-mon@RMULENDA-SV2.service
+    - ceph-osd@1.service
+    - ceph-volume@lvm-1-93d50388-3ce7-43c1-9011-366ab230d746.service
+  when: inventory_hostname == 'RMULENDA-SV2'
+
+- name: Stop Ceph services on RMULENDA-SV3
+  become: yes
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  loop:
+    - ceph-crash.service
+    - ceph-mon@RMULENDA-SV3.service
+    - ceph-osd@2.service
+    - ceph-volume@lvm-2-7c46b0f9-6088-4dad-ae3e-79df49785a10.service
+  when: inventory_hostname == 'RMULENDA-SV3'
+
+- name: Stop common Ceph services on all hosts
+  become: yes
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  loop:
     - ceph.target
 
 - name: Ensure No Ceph Processes
   become: yes
   shell: pkill -f ceph || true
-  ignore_errors: yes
+  ignore_errors: yes  # This command will fail if no ceph processes are found, hence we ignore errors
 
 - name: Remove Ceph packages
   become: yes
