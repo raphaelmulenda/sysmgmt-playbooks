@@ -55,6 +55,9 @@ Usage
 
     ansible-playbook -i hosts playbooks/update_systems.yml
 
+    Correct the path in your command to:
+
+    ansible-playbook -i inventory/hosts -vvv playbooks/remove_ceph.yml
 
 Playbooks
 Here's a brief overview of some of the playbooks available:
