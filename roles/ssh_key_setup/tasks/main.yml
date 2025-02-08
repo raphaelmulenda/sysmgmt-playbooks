@@ -12,7 +12,7 @@
     src: "/home/rmulenda/.ssh/id_rsa.pub"
   register: jenkins_public_key
   delegate_to: "{{ groups['jenkins'] | first }}"
-  when: inventory_hostname in groups['jenkins']
+  run_once: true
 
 - name: Create .ssh directory on Docker server if it doesn't exist
   file:
