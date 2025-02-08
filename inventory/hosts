@@ -53,3 +53,9 @@ k8s-worker-5 ansible_host=192.168.1.23 ansible_user=rmulenda
 
 [k8s_workers-6]
 k8s-worker-6 ansible_host=192.168.1.24 ansible_user=rmulenda
+
+[jenkins]
+jenkins ansible_host=192.168.1.25 ansible_user=rmulenda
+
+[docker]
+docker ansible_host=192.168.1.26 ansible_user=rmulenda

@@ -58,6 +58,8 @@ Usage
     Correct the path in your command to:
 
     ansible-playbook -i inventory/hosts -vvv playbooks/remove_ceph.yml
+    
+    ansible-playbook -i inventory/hosts playbooks/
 
 Playbooks
 Here's a brief overview of some of the playbooks available:
