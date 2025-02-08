@@ -35,12 +35,21 @@
 - debug:
     var: download_jenkins_key
 
-- name: Add Jenkins repository key using apt-key
-  command: apt-key add /tmp/jenkins.io.key
+- name: Add Jenkins repository key
+  apt_key:
+    file: /tmp/jenkins.io.key
+    state: present
   register: add_jenkins_key
-  changed_when: "'OK' in add_jenkins_key.stdout"
 - debug:
     var: add_jenkins_key
+
+- name: Add the missing public key
+  apt_key:
+    keyserver: keyserver.ubuntu.com
+    key: 5BA31D57EF5975CA
+  register: add_missing_key
+- debug:
+    var: add_missing_key
 
 - name: Add Jenkins repository
   apt_repository:
