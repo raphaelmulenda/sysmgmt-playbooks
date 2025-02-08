@@ -28,9 +28,10 @@
     var: install_java
 
 - name: Add Jenkins repository key
-  ansible.builtin.apt_key:
+  get_url:
     url: "https://pkg.jenkins.io/debian-stable/jenkins.io.key"
-    state: present
+    dest: /etc/apt/trusted.gpg.d/jenkins.gpg
+    mode: '0644'
   register: add_jenkins_key
 - debug:
     var: add_jenkins_key
