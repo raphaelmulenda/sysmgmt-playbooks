@@ -4,41 +4,65 @@
     update_cache: yes
     upgrade: dist
   when: ansible_os_family == 'Debian'
+  register: update_packages_result
+- debug:
+    msg: "System packages updated: {{ update_packages_result.changed }}"
 
 - name: Install Docker dependencies
   apt:
     name: ['apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common']
     state: present
+  register: install_deps_result
+- debug:
+    msg: "Docker dependencies installed: {{ install_deps_result.changed }}"
 
 - name: Add Docker GPG key
   apt_key:
     url: https://download.docker.com/linux/ubuntu/gpg
     state: present
+  register: add_gpg_key_result
+- debug:
+    msg: "Docker GPG key added: {{ add_gpg_key_result.changed }}"
 
 - name: Add Docker repository
   apt_repository:
     repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
     state: present
+  register: add_repo_result
+- debug:
+    msg: "Docker repository added: {{ add_repo_result.changed }}"
 
 - name: Install Docker
   apt:
     name: ['docker-ce', 'docker-ce-cli', 'containerd.io']
     state: present
+  register: install_docker_result
+- debug:
+    msg: "Docker installed: {{ install_docker_result.changed }}"
 
 - name: Ensure Docker is started and enabled
   systemd:
     name: docker
     state: started
     enabled: yes
+  register: start_docker_result
+- debug:
+    msg: "Docker service started and enabled: {{ start_docker_result.changed }}"
 
 - name: Add user to docker group
   user:
-    name: ubuntu
+    name: rmulenda
     groups: docker
     append: yes
+  register: add_user_to_group_result
+- debug:
+    msg: "User rmulenda added to docker group: {{ add_user_to_group_result.changed }}"
 
 - name: Install Docker Compose
   get_url:
     url: "https://github.com/docker/compose/releases/download/v2.5.0/docker-compose-linux-x86_64"
     dest: /usr/local/bin/docker-compose
     mode: 'u+x,g+x'
+  register: install_docker_compose_result
+- debug:
+    msg: "Docker Compose installed: {{ install_docker_compose_result.changed }}"

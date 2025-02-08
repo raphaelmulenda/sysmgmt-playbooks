@@ -4,29 +4,47 @@
     update_cache: yes
     upgrade: dist
   when: ansible_os_family == 'Debian'
+  register: update_packages_result
+- debug:
+    msg: "System packages updated: {{ update_packages_result.changed }}"
 
 - name: Install Java
   apt:
     name: openjdk-11-jdk
     state: present
+  register: install_java_result
+- debug:
+    msg: "Java installed: {{ install_java_result.changed }}"
 
 - name: Add Jenkins repository key
   apt_key:
     url: "https://pkg.jenkins.io/debian-stable/jenkins.io.key"
     state: present
+  register: add_jenkins_key_result
+- debug:
+    msg: "Jenkins repository key added: {{ add_jenkins_key_result.changed }}"
 
 - name: Add Jenkins repository
   apt_repository:
     repo: 'deb https://pkg.jenkins.io/debian-stable binary/'
     state: present
+  register: add_jenkins_repo_result
+- debug:
+    msg: "Jenkins repository added: {{ add_jenkins_repo_result.changed }}"
 
 - name: Install Jenkins
   apt:
     name: jenkins
     state: present
+  register: install_jenkins_result
+- debug:
+    msg: "Jenkins installed: {{ install_jenkins_result.changed }}"
 
 - name: Ensure Jenkins is started and enabled
   systemd:
     name: jenkins
     state: started
     enabled: yes
+  register: start_jenkins_result
+- debug:
+    msg: "Jenkins service started and enabled: {{ start_jenkins_result.changed }}"

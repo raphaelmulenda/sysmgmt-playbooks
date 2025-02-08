@@ -3,3 +3,6 @@
   apt:
     name: ansible
     state: present
+  register: ansible_install_result
+- debug:
+    msg: "Ansible installed: {{ ansible_install_result.changed }}"

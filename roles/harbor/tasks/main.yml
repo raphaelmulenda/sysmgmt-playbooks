@@ -7,3 +7,9 @@
     ./install.sh
   args:
     creates: /data/harbor/
+  register: install_harbor_result
+- debug:
+    msg: "Harbor installation attempted: {{ install_harbor_result.changed }}, Return code: {{ install_harbor_result.rc }}"
+- debug:
+    var: install_harbor_result.stdout_lines
+  when: install_harbor_result.changed

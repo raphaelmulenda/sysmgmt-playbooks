@@ -2,17 +2,26 @@
 - name: Configure pending packages
   command: dpkg --configure -a
   become: true
+  register: configure_packages_result
+- debug:
+    msg: "Pending packages configured: {{ configure_packages_result.changed }}"
 
 - name: Clean up the package database
   apt:
     autoclean: yes
   become: true
+  register: cleanup_packages_result
+- debug:
+    msg: "Package database cleaned: {{ cleanup_packages_result.changed }}"
 
 - name: Remove unnecessary packages
   apt:
     autoremove: yes
     purge: yes
   become: true
+  register: remove_packages_result
+- debug:
+    msg: "Unnecessary packages removed: {{ remove_packages_result.changed }}"
 
 - name: Force upgrade of specific deferred packages
   apt:
@@ -26,18 +35,29 @@
     state: latest
     force: yes
   become: true
+  register: force_upgrade_packages_result
+- debug:
+    msg: "Specific packages upgraded: {{ force_upgrade_packages_result.changed }}"
 
 - name: Check for updates
   apt:
     update_cache: yes
   become: true
+  register: check_updates_result
+- debug:
+    msg: "Package cache updated: {{ check_updates_result.changed }}"
 
 - name: Perform system upgrade
   apt:
     upgrade: dist
   become: true
   register: upgrade_result
+- debug:
+    msg: "System upgrade performed: {{ upgrade_result.changed }}"
 
 - name: Notify handler if upgrade occurred
   notify: system_reboot
+  when: upgrade_result.changed
+- debug:
+    msg: "System reboot notified due to upgrades"
   when: upgrade_result.changed

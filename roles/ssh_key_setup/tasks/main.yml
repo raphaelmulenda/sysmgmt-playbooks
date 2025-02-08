@@ -6,6 +6,10 @@
     ssh_key_file: .ssh/id_rsa
   become: yes
   when: inventory_hostname in groups['jenkins']
+  register: generate_ssh_key_result
+- debug:
+    msg: "SSH key generated for rmulenda: {{ generate_ssh_key_result.changed }}"
+  when: inventory_hostname in groups['jenkins']
 
 - name: Fetch public key from Jenkins server
   slurp:
@@ -13,6 +17,8 @@
   register: jenkins_public_key
   delegate_to: "{{ groups['jenkins'] | first }}"
   run_once: true
+- debug:
+    msg: "Public key fetched from Jenkins server"
 
 - name: Create .ssh directory on Docker server if it doesn't exist
   file:
@@ -21,6 +27,10 @@
     mode: '0700'
   become: yes
   when: inventory_hostname in groups['docker']
+  register: create_ssh_dir_result
+- debug:
+    msg: ".ssh directory created on Docker server: {{ create_ssh_dir_result.changed }}"
+  when: inventory_hostname in groups['docker']
 
 - name: Add Jenkins's public SSH key to Docker server's authorized_keys
   authorized_key:
@@ -28,6 +38,10 @@
     state: present
     key: "{{ jenkins_public_key['content'] | b64decode }}"
   become: yes
+  when: inventory_hostname in groups['docker']
+  register: add_ssh_key_result
+- debug:
+    msg: "SSH key added to authorized_keys on Docker server: {{ add_ssh_key_result.changed }}"
   when: inventory_hostname in groups['docker']
 
 - name: Ensure proper permissions for .ssh directory on Jenkins server
@@ -38,6 +52,10 @@
     group: rmulenda
   become: yes
   when: inventory_hostname in groups['jenkins']
+  register: set_ssh_dir_permissions_jenkins_result
+- debug:
+    msg: "Permissions set for .ssh directory on Jenkins: {{ set_ssh_dir_permissions_jenkins_result.changed }}"
+  when: inventory_hostname in groups['jenkins']
 
 - name: Ensure proper permissions for .ssh directory on Docker server
   file:
@@ -46,6 +64,10 @@
     owner: rmulenda
     group: rmulenda
   become: yes
+  when: inventory_hostname in groups['docker']
+  register: set_ssh_dir_permissions_docker_result
+- debug:
+    msg: "Permissions set for .ssh directory on Docker: {{ set_ssh_dir_permissions_docker_result.changed }}"
   when: inventory_hostname in groups['docker']
 
 - name: Ensure authorized_keys file has correct permissions on Jenkins server
@@ -56,6 +78,10 @@
     group: rmulenda
   become: yes
   when: inventory_hostname in groups['jenkins']
+  register: set_auth_keys_permissions_jenkins_result
+- debug:
+    msg: "Permissions set for authorized_keys on Jenkins: {{ set_auth_keys_permissions_jenkins_result.changed }}"
+  when: inventory_hostname in groups['jenkins']
 
 - name: Ensure authorized_keys file has correct permissions on Docker server
   file:
@@ -65,12 +91,18 @@
     group: rmulenda
   become: yes
   when: inventory_hostname in groups['docker']
+  register: set_auth_keys_permissions_docker_result
+- debug:
+    msg: "Permissions set for authorized_keys on Docker: {{ set_auth_keys_permissions_docker_result.changed }}"
+  when: inventory_hostname in groups['docker']
 
 - name: Test SSH connection from Jenkins to Docker server
   shell: ssh -o BatchMode=yes -o StrictHostKeyChecking=no rmulenda@{{ hostvars[groups['docker'][0]]['ansible_host'] }} 'echo Connection successful'
   register: ssh_test
   delegate_to: "{{ groups['jenkins'] | first }}"
   ignore_errors: true
+- debug:
+    msg: "SSH connection test executed"
 
 - name: Display SSH test result
   debug:
