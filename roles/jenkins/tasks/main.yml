@@ -27,6 +27,14 @@
 - debug:
     var: install_java
 
+- name: Install GPG
+  apt:
+    name: gnupg
+    state: present
+  register: install_gpg
+- debug:
+    var: install_gpg
+
 - name: Download Jenkins repository key
   get_url:
     url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
@@ -36,16 +44,14 @@
     var: download_jenkins_key
 
 - name: Add Jenkins repository key
-  apt_key:
-    file: /tmp/jenkins.io.key
-    state: present
+  command: gpg --no-default-keyring --keyring /usr/share/keyrings/jenkins-keyring.gpg --import /tmp/jenkins.io.key
   register: add_jenkins_key
 - debug:
     var: add_jenkins_key
 
 - name: Add Jenkins repository
   apt_repository:
-    repo: 'deb https://pkg.jenkins.io/debian-stable binary/'
+    repo: 'deb [signed-by=/usr/share/keyrings/jenkins-keyring.gpg] https://pkg.jenkins.io/debian-stable binary/'
     state: present
     filename: 'jenkins'
   register: add_jenkins_repo
