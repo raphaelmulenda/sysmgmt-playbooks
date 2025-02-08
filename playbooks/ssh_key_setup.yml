@@ -1,0 +1,5 @@
+- hosts: 
+    - jenkins
+    - docker
+  roles:
+    - { role: /home/raphael/Documents/Sysadmin/Ansible-playbooks/sysmgmt-playbooks/roles/ssh_key_setup }  

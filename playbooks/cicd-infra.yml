@@ -1,0 +1,25 @@
+---
+- name: Provision CI/CD infrastructure
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Include Jenkins role
+      include_role:
+        name: jenkins
+      when: inventory_hostname in groups['jenkins']
+
+    - name: Include Ansible role
+      include_role:
+        name: ansible
+      when: inventory_hostname in groups['jenkins']
+
+    - name: Include Docker role
+      include_role:
+        name: docker
+      when: inventory_hostname in groups['docker']
+
+    - name: Include Harbor role
+      include_role:
+        name: harbor
+      when: inventory_hostname in groups['docker']

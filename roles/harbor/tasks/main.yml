@@ -1,0 +1,9 @@
+---
+- name: Install Harbor
+  shell: |
+    wget -O harbor-offline-installer-v2.4.1.tgz https://github.com/goharbor/harbor/releases/download/v2.4.1/harbor-offline-installer-v2.4.1.tgz
+    tar -xvf harbor-offline-installer-v2.4.1.tgz
+    cd harbor
+    ./install.sh
+  args:
+    creates: /data/harbor/

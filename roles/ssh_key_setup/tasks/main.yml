@@ -1,0 +1,78 @@
+---
+- name: Generate SSH key for rmulenda user on Jenkins server
+  user: 
+    name: rmulenda
+    generate_ssh_key: yes
+    ssh_key_file: .ssh/id_rsa
+  become: yes
+  when: inventory_hostname in groups['jenkins']
+
+- name: Fetch public key from Jenkins server
+  slurp:
+    src: "/home/rmulenda/.ssh/id_rsa.pub"
+  register: jenkins_public_key
+  delegate_to: "{{ groups['jenkins'] | first }}"
+  when: inventory_hostname in groups['jenkins']
+
+- name: Create .ssh directory on Docker server if it doesn't exist
+  file:
+    path: /home/rmulenda/.ssh
+    state: directory
+    mode: '0700'
+  become: yes
+  when: inventory_hostname in groups['docker']
+
+- name: Add Jenkins's public SSH key to Docker server's authorized_keys
+  authorized_key:
+    user: rmulenda
+    state: present
+    key: "{{ jenkins_public_key['content'] | b64decode }}"
+  become: yes
+  when: inventory_hostname in groups['docker']
+
+- name: Ensure proper permissions for .ssh directory on Jenkins server
+  file:
+    path: /home/rmulenda/.ssh
+    mode: '0700'
+    owner: rmulenda
+    group: rmulenda
+  become: yes
+  when: inventory_hostname in groups['jenkins']
+
+- name: Ensure proper permissions for .ssh directory on Docker server
+  file:
+    path: /home/rmulenda/.ssh
+    mode: '0700'
+    owner: rmulenda
+    group: rmulenda
+  become: yes
+  when: inventory_hostname in groups['docker']
+
+- name: Ensure authorized_keys file has correct permissions on Jenkins server
+  file:
+    path: /home/rmulenda/.ssh/authorized_keys
+    mode: '0600'
+    owner: rmulenda
+    group: rmulenda
+  become: yes
+  when: inventory_hostname in groups['jenkins']
+
+- name: Ensure authorized_keys file has correct permissions on Docker server
+  file:
+    path: /home/rmulenda/.ssh/authorized_keys
+    mode: '0600'
+    owner: rmulenda
+    group: rmulenda
+  become: yes
+  when: inventory_hostname in groups['docker']
+
+- name: Test SSH connection from Jenkins to Docker server
+  shell: ssh -o BatchMode=yes -o StrictHostKeyChecking=no rmulenda@{{ hostvars[groups['docker'][0]]['ansible_host'] }} 'echo Connection successful'
+  register: ssh_test
+  delegate_to: "{{ groups['jenkins'] | first }}"
+  ignore_errors: true
+
+- name: Display SSH test result
+  debug:
+    msg: "SSH connection test result: {{ ssh_test.stdout_lines }}"
+  when: inventory_hostname in groups['jenkins']
