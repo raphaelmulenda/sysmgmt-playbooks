@@ -27,10 +27,19 @@
 - debug:
     var: install_java
 
+- name: Download Jenkins repository key
+  get_url:
+    url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
+    dest: /tmp/jenkins.io.key
+  register: download_jenkins_key
+- debug:
+    var: download_jenkins_key
+
 - name: Add Jenkins repository key
-  command: wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | apt-key add -
+  apt_key:
+    file: /tmp/jenkins.io.key
+    state: present
   register: add_jenkins_key
-  changed_when: "'ok' in add_jenkins_key.stdout"
 - debug:
     var: add_jenkins_key
 
