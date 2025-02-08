@@ -3,63 +3,63 @@
   file:
     path: "{{ item }}"
     state: absent
-  with_items:
+  loop:
     - /var/lib/apt/lists/lock
     - /var/cache/apt/archives/lock
-  become: true
-  register: remove_lock_files_result
+  register: remove_lock_files
 - debug:
-    msg: "Removed lock files: {{ remove_lock_files_result.results | map(attribute='changed') | list }}"
+    var: remove_lock_files
 
 - name: Update system packages
   apt:
     update_cache: yes
     upgrade: dist
   when: ansible_os_family == 'Debian'
-  register: update_packages_result
+  register: update_packages
 - debug:
-    msg: "System packages updated: {{ update_packages_result.changed }}"
+    var: update_packages
 
 - name: Install Java
   apt:
     name: openjdk-11-jdk
     state: present
-  register: install_java_result
+  register: install_java
 - debug:
-    msg: "Java installed: {{ install_java_result.changed }}"
+    var: install_java
 
 - name: Add Jenkins repository key
-  apt_key:
+  ansible.builtin.apt_key:
     url: "https://pkg.jenkins.io/debian-stable/jenkins.io.key"
     state: present
-  register: add_jenkins_key_result
+  register: add_jenkins_key
 - debug:
-    msg: "Jenkins repository key added: {{ add_jenkins_key_result.changed }}"
+    var: add_jenkins_key
 
 - name: Add Jenkins repository
   apt_repository:
     repo: 'deb https://pkg.jenkins.io/debian-stable binary/'
     state: present
-  register: add_jenkins_repo_result
+    filename: 'jenkins'
+  register: add_jenkins_repo
 - debug:
-    msg: "Jenkins repository added: {{ add_jenkins_repo_result.changed }}"
+    var: add_jenkins_repo
 
 - name: Install Jenkins
   apt:
     name: jenkins
     state: present
-  register: install_jenkins_result
+  register: install_jenkins
 - debug:
-    msg: "Jenkins installed: {{ install_jenkins_result.changed }}"
+    var: install_jenkins
 
 - name: Ensure Jenkins is started and enabled
   systemd:
     name: jenkins
     state: started
     enabled: yes
-  register: start_jenkins_result
+  register: start_jenkins
 - debug:
-    msg: "Jenkins service started and enabled: {{ start_jenkins_result.changed }}"
+    var: start_jenkins
 
 - name: Wait for Jenkins to start
   uri:
@@ -71,7 +71,7 @@
   retries: 10
   delay: 30
 - debug:
-    msg: "Jenkins is now running and accessible."
+    var: jenkins_status
 
 - name: Install Jenkins plugins
   jenkins_plugin:
@@ -84,6 +84,6 @@
     - pipeline
     - credentials
     - ssh-slaves
-  register: jenkins_plugins_result
+  register: install_plugins
 - debug:
-    msg: "Jenkins plugins installed: {{ jenkins_plugins_result.results | map(attribute='changed') | list }}"
+    var: install_plugins

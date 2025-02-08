@@ -3,15 +3,27 @@
   stat:
     path: /data/harbor/
   register: harbor_installed
+- debug:
+    var: harbor_installed
+
+- name: Install required dependencies
+  apt:
+    name:
+      - curl
+      - tar
+    state: present
+  register: install_dependencies
+- debug:
+    var: install_dependencies
 
 - name: Download Harbor installer
   get_url:
     url: "https://github.com/goharbor/harbor/releases/download/v2.4.1/harbor-offline-installer-v2.4.1.tgz"
     dest: /tmp/harbor-offline-installer-v2.4.1.tgz
   when: not harbor_installed.stat.exists
-  register: download_harbor_result
+  register: download_harbor
 - debug:
-    msg: "Harbor installer downloaded: {{ download_harbor_result.changed }}"
+    var: download_harbor
 
 - name: Extract Harbor installer
   unarchive:
@@ -19,9 +31,40 @@
     dest: /tmp
     remote_src: yes
   when: not harbor_installed.stat.exists
-  register: extract_harbor_result
+  register: extract_harbor
 - debug:
-    msg: "Harbor installer extracted: {{ extract_harbor_result.changed }}"
+    var: extract_harbor
+
+- name: Ensure Harbor configuration directory exists
+  file:
+    path: /tmp/harbor
+    state: directory
+    mode: '0755'
+  register: create_harbor_dir
+- debug:
+    var: create_harbor_dir
+
+- name: Create harbor.yml configuration file
+  copy:
+    dest: /tmp/harbor/harbor.yml
+    content: |
+      hostname: harbor.example.com
+      http:
+        port: 8080
+      database:
+        password: root123
+      data_volume: /data/harbor
+      admin_password: Harbor12345
+      log:
+        level: info
+      jobservice:
+        max_job_workers: 10
+      chart:
+        absolute_url: disabled
+  when: not harbor_installed.stat.exists
+  register: create_harbor_config
+- debug:
+    var: create_harbor_config
 
 - name: Install Harbor
   shell: |
@@ -29,14 +72,11 @@
     ./install.sh
   args:
     chdir: /tmp/harbor
-    creates: /data/harbor/
   when: not harbor_installed.stat.exists
   register: install_harbor_result
+  failed_when: "'no config file' in install_harbor_result.stdout"
 - debug:
-    msg: "Harbor installation attempted: {{ install_harbor_result.changed }}, Return code: {{ install_harbor_result.rc }}"
-- debug:
-    var: install_harbor_result.stdout_lines
-  when: install_harbor_result.changed
+    var: install_harbor_result
 
 - name: Ensure Harbor is running
   uri:
@@ -47,4 +87,4 @@
   retries: 5
   delay: 30
 - debug:
-    msg: "Harbor is now running and accessible."
+    var: harbor_status
