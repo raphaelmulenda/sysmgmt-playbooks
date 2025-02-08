@@ -60,3 +60,30 @@
   register: start_jenkins_result
 - debug:
     msg: "Jenkins service started and enabled: {{ start_jenkins_result.changed }}"
+
+- name: Wait for Jenkins to start
+  uri:
+    url: http://localhost:8080
+    status_code: 200
+    timeout: 300
+  register: jenkins_status
+  until: jenkins_status.status == 200
+  retries: 10
+  delay: 30
+- debug:
+    msg: "Jenkins is now running and accessible."
+
+- name: Install Jenkins plugins
+  jenkins_plugin:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - git
+    - docker
+    - ansible
+    - pipeline
+    - credentials
+    - ssh-slaves
+  register: jenkins_plugins_result
+- debug:
+    msg: "Jenkins plugins installed: {{ jenkins_plugins_result.results | map(attribute='changed') | list }}"

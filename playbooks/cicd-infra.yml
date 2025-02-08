@@ -1,27 +1,34 @@
----
 - name: Provision CI/CD infrastructure
   hosts:
     - jenkins
     - docker
   gather_facts: yes
-  become: true  # <-- Ensure all tasks run with sudo
+  become: true
+  pre_tasks:
+    - name: Ensure servers are reachable
+      ping:
+
   tasks:
     - name: Include Jenkins role
       include_role:
         name: jenkins
       when: inventory_hostname in groups['jenkins']
+      tags: jenkins
 
     - name: Include Ansible role
       include_role:
         name: ansible
       when: inventory_hostname in groups['jenkins']
+      tags: ansible
 
     - name: Include Docker role
       include_role:
         name: docker
       when: inventory_hostname in groups['docker']
+      tags: docker
 
     - name: Include Harbor role
       include_role:
         name: harbor
       when: inventory_hostname in groups['docker']
+      tags: harbor

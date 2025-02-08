@@ -10,7 +10,7 @@
   register: remove_lock_files_result
 - debug:
     msg: "Removed lock files: {{ remove_lock_files_result.results | map(attribute='changed') | list }}"
-    
+
 - name: Update system packages
   apt:
     update_cache: yes
@@ -61,6 +61,13 @@
 - debug:
     msg: "Docker service started and enabled: {{ start_docker_result.changed }}"
 
+- name: Validate Docker installation
+  command: docker --version
+  register: docker_version
+  changed_when: false
+- debug:
+    msg: "Docker version: {{ docker_version.stdout }}"
+
 - name: Add user to docker group
   user:
     name: rmulenda
@@ -78,3 +85,10 @@
   register: install_docker_compose_result
 - debug:
     msg: "Docker Compose installed: {{ install_docker_compose_result.changed }}"
+
+- name: Validate Docker Compose installation
+  command: docker-compose --version
+  register: docker_compose_version
+  changed_when: false
+- debug:
+    msg: "Docker Compose version: {{ docker_compose_version.stdout }}"

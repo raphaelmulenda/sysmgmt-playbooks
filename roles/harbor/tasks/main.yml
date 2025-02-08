@@ -1,15 +1,50 @@
 ---
+- name: Check if Harbor is already installed
+  stat:
+    path: /data/harbor/
+  register: harbor_installed
+
+- name: Download Harbor installer
+  get_url:
+    url: "https://github.com/goharbor/harbor/releases/download/v2.4.1/harbor-offline-installer-v2.4.1.tgz"
+    dest: /tmp/harbor-offline-installer-v2.4.1.tgz
+  when: not harbor_installed.stat.exists
+  register: download_harbor_result
+- debug:
+    msg: "Harbor installer downloaded: {{ download_harbor_result.changed }}"
+
+- name: Extract Harbor installer
+  unarchive:
+    src: /tmp/harbor-offline-installer-v2.4.1.tgz
+    dest: /tmp
+    remote_src: yes
+  when: not harbor_installed.stat.exists
+  register: extract_harbor_result
+- debug:
+    msg: "Harbor installer extracted: {{ extract_harbor_result.changed }}"
+
 - name: Install Harbor
   shell: |
-    wget -O harbor-offline-installer-v2.4.1.tgz https://github.com/goharbor/harbor/releases/download/v2.4.1/harbor-offline-installer-v2.4.1.tgz
-    tar -xvf harbor-offline-installer-v2.4.1.tgz
-    cd harbor
+    cd /tmp/harbor
     ./install.sh
   args:
+    chdir: /tmp/harbor
     creates: /data/harbor/
+  when: not harbor_installed.stat.exists
   register: install_harbor_result
 - debug:
     msg: "Harbor installation attempted: {{ install_harbor_result.changed }}, Return code: {{ install_harbor_result.rc }}"
 - debug:
     var: install_harbor_result.stdout_lines
   when: install_harbor_result.changed
+
+- name: Ensure Harbor is running
+  uri:
+    url: http://localhost:8080
+    status_code: 200
+  register: harbor_status
+  until: harbor_status.status == 200
+  retries: 5
+  delay: 30
+- debug:
+    msg: "Harbor is now running and accessible."
