@@ -1,4 +1,16 @@
 ---
+- name: Remove apt lock files if they exist
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /var/lib/apt/lists/lock
+    - /var/cache/apt/archives/lock
+  become: true
+  register: remove_lock_files_result
+- debug:
+    msg: "Removed lock files: {{ remove_lock_files_result.results | map(attribute='changed') | list }}"
+
 - name: Update system packages
   apt:
     update_cache: yes
