@@ -3,7 +3,8 @@
   hosts:
     - jenkins
     - docker
-  gather_facts: yes  
+  gather_facts: yes
+  become: true  # <-- Ensure all tasks run with sudo
   tasks:
     - name: Include Jenkins role
       include_role:
