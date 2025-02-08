@@ -52,12 +52,10 @@
     upgrade: dist
   become: true
   register: upgrade_result
+  notify: system_reboot
 - debug:
     msg: "System upgrade performed: {{ upgrade_result.changed }}"
 
-- name: Notify handler if upgrade occurred
-  notify: system_reboot
-  when: upgrade_result.changed
 - debug:
     msg: "System reboot notified due to upgrades"
   when: upgrade_result.changed
