@@ -30,30 +30,14 @@
 - name: Download Jenkins repository key
   get_url:
     url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
-    dest: /tmp/jenkins.io.key
+    dest: /usr/share/keyrings/jenkins-keyring.gpg
   register: download_jenkins_key
 - debug:
     var: download_jenkins_key
 
-- name: Add Jenkins repository key
-  apt_key:
-    file: /tmp/jenkins.io.key
-    state: present
-  register: add_jenkins_key
-- debug:
-    var: add_jenkins_key
-
-- name: Add the missing public key
-  apt_key:
-    keyserver: keyserver.ubuntu.com
-    key: 5BA31D57EF5975CA
-  register: add_missing_key
-- debug:
-    var: add_missing_key
-
 - name: Add Jenkins repository
   apt_repository:
-    repo: 'deb https://pkg.jenkins.io/debian-stable binary/'
+    repo: 'deb [signed-by=/usr/share/keyrings/jenkins-keyring.gpg] https://pkg.jenkins.io/debian-stable binary/'
     state: present
     filename: 'jenkins'
   register: add_jenkins_repo
