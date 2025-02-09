@@ -73,7 +73,7 @@
       database:
         password: root123
       data_volume: /data/harbor
-      admin_password: Harbor12345
+      harbor_admin_password: Harbor12345
       log:
         level: info
       jobservice:
