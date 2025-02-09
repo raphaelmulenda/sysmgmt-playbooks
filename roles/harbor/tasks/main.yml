@@ -1,4 +1,12 @@
 ---
+- name: Ensure Python is installed
+  apt:
+    name: python3
+    state: present
+  register: install_python
+- debug:
+    var: install_python
+
 - name: Check if Harbor is already installed
   stat:
     path: /data/harbor/
@@ -86,6 +94,34 @@
   register: create_harbor_config
 - debug:
     var: create_harbor_config
+
+- name: Create patch for prepare.py
+  copy:
+    dest: /tmp/harbor/prepare.patch
+    content: |
+      --- prepare.py.orig 2025-02-09 22:20:31.000000000 +0000
+      +++ prepare.py      2025-02-09 22:25:00.000000000 +0000
+      @@ -20,7 +20,10 @@
+          'jobservice': {
+              'max_job_workers': configs['jobservice']['max_job_workers'],
+          },
+          'chart': {
+              'absolute_url': configs['chart']['absolute_url'],
+          },
+          'notification': {
+              'webhook_job_max_retry': configs['notification']['webhook_job_max_retry'],
+          },
+      +    'log_location': configs.get('log_location', '/var/log/harbor'),  # Add default value
+      }
+  register: create_patch
+- debug:
+    var: create_patch
+
+- name: Apply patch to prepare.py
+  command: patch /tmp/harbor/prepare.py /tmp/harbor/prepare.patch
+  register: apply_patch
+- debug:
+    var: apply_patch
 
 - name: Run the prepare script manually
   shell: |
