@@ -82,7 +82,6 @@
         absolute_url: disabled
       notification:  # Add this section
         webhook_job_max_retry: 10  # Required key
-  when: not harbor_installed.stat.exists
   register: create_harbor_config
 - debug:
     var: create_harbor_config
