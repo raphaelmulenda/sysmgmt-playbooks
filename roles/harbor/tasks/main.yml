@@ -49,9 +49,9 @@
 - name: Verify Harbor installer size
   stat:
     path: /tmp/harbor-offline-installer-v2.4.1.tgz
-  register: harbor_installer_stat
+  register: harbor_installer_tgz_stat
 - debug:
-    var: harbor_installer_stat.stat.size  # Check the file size
+    var: harbor_installer_tgz_stat.stat.size  # Check the file size
 
 - name: Extract Harbor installer
   unarchive:
@@ -95,38 +95,23 @@
 - debug:
     var: create_harbor_config
 
-- name: Create patch for prepare.py
-  copy:
-    dest: /tmp/harbor/prepare.patch
-    content: |
-      --- /tmp/harbor/prepare.py.orig 2025-02-09 22:20:31.000000000 +0000
-      +++ /tmp/harbor/prepare.py      2025-02-09 22:25:00.000000000 +0000
-      @@ -20,7 +20,10 @@
-          'jobservice': {
-              'max_job_workers': configs['jobservice']['max_job_workers'],
-          },
-          'chart': {
-              'absolute_url': configs['chart']['absolute_url'],
-          },
-          'notification': {
-              'webhook_job_max_retry': configs['notification']['webhook_job_max_retry'],
-          },
-      +    'log_location': configs.get('log_location', '/var/log/harbor'),  # Add default value
-      }
-  register: create_patch
+- name: Modify prepare script to include 'log_location' key
+  blockinfile:
+    path: /tmp/harbor/prepare
+    insertafter: "config_dict = {"
+    before: "^}"
+    block: |
+      'log_location': configs.get('log_location', '/var/log/harbor'),
+  register: modify_prepare
 - debug:
-    var: create_patch
-
-- name: Apply patch to prepare.py
-  command: patch /tmp/harbor/prepare.py /tmp/harbor/prepare.patch
-  register: apply_patch
-- debug:
-    var: apply_patch
+    var: modify_prepare
 
 - name: Run the prepare script manually
   shell: |
     cd /tmp/harbor
     ./prepare /tmp/harbor/harbor.yml
+  args:
+    executable: /bin/bash
   register: run_prepare
 - debug:
     var: run_prepare
@@ -136,7 +121,7 @@
     cd /tmp/harbor
     ./install.sh
   args:
-    chdir: /tmp/harbor
+    executable: /bin/bash
   register: install_harbor_result
   failed_when: "'no config file' in install_harbor_result.stdout"
 - debug:
