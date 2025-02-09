@@ -27,27 +27,18 @@
 - debug:
     var: install_java
 
-- name: Add Jenkins repository key (ASCII-armored format)
+- name: Download the new Jenkins GPG key (2023)
   get_url:
-    url: "https://pkg.jenkins.io/debian-stable/jenkins.io.key"
-    dest: /etc/apt/trusted.gpg.d/jenkins.asc
+    url: "https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key"
+    dest: /usr/share/keyrings/jenkins-keyring.asc
     mode: '0644'
-  register: add_jenkins_key
+  register: download_jenkins_key
 - debug:
-    var: add_jenkins_key
+    var: download_jenkins_key
 
-- name: Convert Jenkins GPG key to binary format
-  command: >
-    gpg --dearmor -o /etc/apt/trusted.gpg.d/jenkins.gpg /etc/apt/trusted.gpg.d/jenkins.asc
-  args:
-    creates: /etc/apt/trusted.gpg.d/jenkins.gpg
-  register: convert_gpg_key
-- debug:
-    var: convert_gpg_key
-
-- name: Add Jenkins repository
+- name: Add Jenkins repository (using the new key)
   apt_repository:
-    repo: 'deb [signed-by=/etc/apt/trusted.gpg.d/jenkins.gpg] https://pkg.jenkins.io/debian-stable binary/'
+    repo: 'deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/'
     state: present
     filename: 'jenkins'
   register: add_jenkins_repo
