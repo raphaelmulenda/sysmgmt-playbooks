@@ -82,6 +82,7 @@
         absolute_url: disabled
       notification:
         webhook_job_max_retry: 10  # Required key
+      log_location: /var/log/harbor  # Add this line
   register: create_harbor_config
 - debug:
     var: create_harbor_config
