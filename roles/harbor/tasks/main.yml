@@ -63,6 +63,15 @@
 - debug:
     var: create_harbor_dir
 
+- name: Ensure correct permissions for Harbor directory
+  file:
+    path: /tmp/harbor
+    state: directory
+    recurse: yes
+    owner: rmulenda
+    group: rmulenda
+    mode: '0755'
+
 - name: Create harbor.yml configuration file
   copy:
     dest: /tmp/harbor/harbor.yml
@@ -86,6 +95,12 @@
   register: create_harbor_config
 - debug:
     var: create_harbor_config
+
+- name: Verify harbor.yml content
+  shell: cat /tmp/harbor/harbor.yml
+  register: harbor_config_content
+- debug:
+    var: harbor_config_content.stdout_lines
 
 - name: Force install Harbor
   shell: |
