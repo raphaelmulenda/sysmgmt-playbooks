@@ -99,8 +99,8 @@
   copy:
     dest: /tmp/harbor/prepare.patch
     content: |
-      --- prepare.py.orig 2025-02-09 22:20:31.000000000 +0000
-      +++ prepare.py      2025-02-09 22:25:00.000000000 +0000
+      --- /tmp/harbor/prepare.py.orig 2025-02-09 22:20:31.000000000 +0000
+      +++ /tmp/harbor/prepare.py      2025-02-09 22:25:00.000000000 +0000
       @@ -20,7 +20,10 @@
           'jobservice': {
               'max_job_workers': configs['jobservice']['max_job_workers'],
