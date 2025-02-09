@@ -39,9 +39,10 @@
     var: install_java
 
 - name: Set Java 17 as default
-  command: update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
+  alternatives:
+    name: java
+    path: /usr/lib/jvm/java-17-openjdk-amd64/bin/java
   become: true
-  changed_when: false
 
 - name: Verify Java Version
   command: java -version
@@ -86,19 +87,24 @@
 - name: Ensure Jenkins is started and enabled
   systemd:
     name: jenkins
-    state: restarted
+    state: started
     enabled: yes
   register: start_jenkins
 - debug:
     var: start_jenkins
 
+- name: Get initial Jenkins admin password
+  shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+  register: jenkins_admin_password
+  changed_when: false
+
 - name: Wait for Jenkins to start
   uri:
     url: "http://localhost:8080"
-    method: GET
     status_code: 200
+    method: GET
     user: "admin"
-    password: "{{ jenkins_admin_password }}"
+    password: "{{ jenkins_admin_password.stdout }}"
     force_basic_auth: yes
   register: jenkins_response
   retries: 10
@@ -111,6 +117,8 @@
   jenkins_plugin:
     name: "{{ item }}"
     state: present
+    url_username: "admin"
+    url_password: "{{ jenkins_admin_password.stdout }}"
   loop:
     - git
     - docker
