@@ -10,19 +10,30 @@
 - debug:
     var: remove_lock_files
 
-- name: Update system packages
+- name: Update apt cache
   apt:
     update_cache: yes
-    upgrade: dist
-  when: ansible_os_family == 'Debian'
-  register: update_packages
+  register: update_cache
 - debug:
-    var: update_packages
+    var: update_cache
 
-- name: Install Java
+- name: Install dependencies
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - software-properties-common
+    - apt-transport-https
+    - ca-certificates
+  register: install_dependencies
+- debug:
+    var: install_dependencies
+
+- name: Install OpenJDK 11
   apt:
     name: openjdk-11-jdk
     state: present
+  become: true
   register: install_java
 - debug:
     var: install_java
@@ -44,6 +55,13 @@
   register: add_jenkins_repo
 - debug:
     var: add_jenkins_repo
+
+- name: Update apt cache after adding Jenkins repository
+  apt:
+    update_cache: yes
+  register: update_cache_after_repo
+- debug:
+    var: update_cache_after_repo
 
 - name: Install Jenkins
   apt:
