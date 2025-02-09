@@ -1,3 +1,4 @@
+---
 - name: Check if Harbor is already installed
   stat:
     path: /data/harbor/
@@ -49,7 +50,6 @@
     src: /tmp/harbor-offline-installer-v2.4.1.tgz
     dest: /tmp
     remote_src: yes
-  when: not harbor_installed.stat.exists
   register: extract_harbor
 - debug:
     var: extract_harbor
@@ -80,19 +80,18 @@
         max_job_workers: 10
       chart:
         absolute_url: disabled
-      notification:  # Add this section
+      notification:
         webhook_job_max_retry: 10  # Required key
   register: create_harbor_config
 - debug:
     var: create_harbor_config
 
-- name: Install Harbor
+- name: Force install Harbor
   shell: |
     cd /tmp/harbor
     ./install.sh
   args:
     chdir: /tmp/harbor
-  when: not harbor_installed.stat.exists
   register: install_harbor_result
   failed_when: "'no config file' in install_harbor_result.stdout"
 - debug:
@@ -104,7 +103,7 @@
     status_code: 200
   register: harbor_status
   until: harbor_status.status == 200
-  retries: 10  
-  delay: 10    
+  retries: 10
+  delay: 10
 - debug:
     var: harbor_status
