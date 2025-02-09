@@ -87,17 +87,15 @@
 - debug:
     var: create_harbor_config
 
-- name: Update prepare.py to include log_location key
-  lineinfile:
-    path: /tmp/harbor/prepare.py
-    insertafter: 'config_dict = {'
-    line: "    'log_location': configs['log_location'],"
-    backup: yes
-  register: update_prepare_py
+- name: Run the prepare script manually
+  shell: |
+    cd /tmp/harbor
+    ./prepare /tmp/harbor/harbor.yml
+  register: run_prepare
 - debug:
-    var: update_prepare_py
+    var: run_prepare
 
-- name: Force install Harbor
+- name: Install Harbor
   shell: |
     cd /tmp/harbor
     ./install.sh
