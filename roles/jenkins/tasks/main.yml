@@ -29,14 +29,26 @@
 - debug:
     var: install_dependencies
 
-- name: Install OpenJDK 11
+- name: Install OpenJDK 17
   apt:
-    name: openjdk-11-jdk
+    name: openjdk-17-jdk
     state: present
   become: true
   register: install_java
 - debug:
     var: install_java
+
+- name: Set Java 17 as default
+  command: update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
+  become: true
+  changed_when: false
+
+- name: Verify Java Version
+  command: java -version
+  register: java_version
+  changed_when: false
+- debug:
+    var: java_version
 
 - name: Download the new Jenkins GPG key (2023)
   get_url:
@@ -74,7 +86,7 @@
 - name: Ensure Jenkins is started and enabled
   systemd:
     name: jenkins
-    state: started
+    state: restarted
     enabled: yes
   register: start_jenkins
 - debug:
