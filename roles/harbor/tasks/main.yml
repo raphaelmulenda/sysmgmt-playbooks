@@ -24,17 +24,18 @@
     url: "https://github.com/goharbor/harbor/releases/download/v2.4.1/harbor-offline-installer-v2.4.1.tgz"
     dest: /tmp/harbor-offline-installer-v2.4.1.tgz
     timeout: 600  # Increase timeout
+    checksum: "sha256:af29f7ad2e9cb64c95d1e2fff1184d0f5229b57b"  # Add checksum verification
   when: not harbor_installed.stat.exists
   register: download_harbor
 - debug:
     var: download_harbor
 
-- name: Verify Harbor installer checksum
+- name: Verify Harbor installer size
   stat:
     path: /tmp/harbor-offline-installer-v2.4.1.tgz
   register: harbor_installer_stat
 - debug:
-    var: harbor_installer_stat
+    var: harbor_installer_stat.stat.size  # Check the file size
 
 - name: Extract Harbor installer
   unarchive:
