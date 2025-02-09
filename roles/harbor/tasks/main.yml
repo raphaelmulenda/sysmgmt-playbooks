@@ -48,7 +48,7 @@
   copy:
     dest: /tmp/harbor/harbor.yml
     content: |
-      hostname: harbor.example.com
+      hostname: localhost  # Update this to the correct hostname or IP
       http:
         port: 8080
       database:
@@ -84,7 +84,7 @@
     status_code: 200
   register: harbor_status
   until: harbor_status.status == 200
-  retries: 5
-  delay: 30
+  retries: 10  # Increased retries
+  delay: 10    # Increased delay
 - debug:
     var: harbor_status
