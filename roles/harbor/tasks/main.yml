@@ -63,15 +63,6 @@
 - debug:
     var: create_harbor_dir
 
-- name: Ensure correct permissions for Harbor directory
-  file:
-    path: /tmp/harbor
-    state: directory
-    recurse: yes
-    owner: rmulenda
-    group: rmulenda
-    mode: '0755'
-
 - name: Create harbor.yml configuration file
   copy:
     dest: /tmp/harbor/harbor.yml
@@ -85,22 +76,26 @@
       harbor_admin_password: Harbor12345
       log:
         level: info
+      log_location: /var/log/harbor  # Ensure this line is present
       jobservice:
         max_job_workers: 10
       chart:
         absolute_url: disabled
       notification:
         webhook_job_max_retry: 10  # Required key
-      log_location: /var/log/harbor  # Added this line to fix the KeyError
   register: create_harbor_config
 - debug:
     var: create_harbor_config
 
-- name: Verify harbor.yml content
-  shell: cat /tmp/harbor/harbor.yml
-  register: harbor_config_content
+- name: Update prepare.py to include log_location key
+  lineinfile:
+    path: /tmp/harbor/prepare.py
+    insertafter: 'config_dict = {'
+    line: "    'log_location': configs['log_location'],"
+    backup: yes
+  register: update_prepare_py
 - debug:
-    var: harbor_config_content.stdout_lines
+    var: update_prepare_py
 
 - name: Force install Harbor
   shell: |
@@ -109,7 +104,7 @@
   args:
     chdir: /tmp/harbor
   register: install_harbor_result
-  failed_when: "'no config file' in install_harbor_result.stdout or 'KeyError' in install_harbor_result.stderr"
+  failed_when: "'no config file' in install_harbor_result.stdout"
 - debug:
     var: install_harbor_result
 
