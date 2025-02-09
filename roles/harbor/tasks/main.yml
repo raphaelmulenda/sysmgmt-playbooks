@@ -99,7 +99,6 @@
   blockinfile:
     path: /tmp/harbor/prepare
     insertafter: "config_dict = {"
-    before: "^}"
     block: |
       'log_location': configs.get('log_location', '/var/log/harbor'),
   register: modify_prepare
