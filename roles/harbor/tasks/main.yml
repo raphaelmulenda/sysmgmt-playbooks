@@ -19,13 +19,20 @@
 - debug:
     var: install_dependencies
 
-- name: Download Harbor installer (Increase timeout)
+- name: Check if Harbor installer already exists
+  stat:
+    path: /tmp/harbor-offline-installer-v2.4.1.tgz
+  register: harbor_installer_stat
+- debug:
+    var: harbor_installer_stat.stat.exists
+
+- name: Download Harbor installer if not present
   get_url:
     url: "https://github.com/goharbor/harbor/releases/download/v2.4.1/harbor-offline-installer-v2.4.1.tgz"
     dest: /tmp/harbor-offline-installer-v2.4.1.tgz
     timeout: 600  # Increase timeout
     checksum: "sha256:af29f7ad2e9cb64c95d1e2fff1184d0f5229b57b"  # Add checksum verification
-  when: not harbor_installed.stat.exists
+  when: not harbor_installer_stat.stat.exists
   register: download_harbor
 - debug:
     var: download_harbor
