@@ -16,13 +16,11 @@
 - debug:
     var: install_dependencies
 
-- name: Download Harbor installer (Extended timeout)
+- name: Download Harbor installer (Increase timeout)
   get_url:
     url: "https://github.com/goharbor/harbor/releases/download/v2.4.1/harbor-offline-installer-v2.4.1.tgz"
     dest: /tmp/harbor-offline-installer-v2.4.1.tgz
-    timeout: 1800  # Extend timeout to 1800 seconds (30 minutes)
-    retries: 3     # Retry up to 3 times
-    delay: 15      # Delay 15 seconds between retries
+    timeout: 600  # Increase timeout
   when: not harbor_installed.stat.exists
   register: download_harbor
 - debug:
@@ -51,7 +49,7 @@
   copy:
     dest: /tmp/harbor/harbor.yml
     content: |
-      hostname: localhost  # Update this to the correct hostname or IP
+      hostname: 192.168.1.27  # Replace with actual IP
       http:
         port: 8080
       database:
@@ -87,7 +85,7 @@
     status_code: 200
   register: harbor_status
   until: harbor_status.status == 200
-  retries: 10
-  delay: 10
+  retries: 10  
+  delay: 10    
 - debug:
     var: harbor_status
