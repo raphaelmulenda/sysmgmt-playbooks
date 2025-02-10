@@ -7,7 +7,7 @@
   become: yes
 
 - name: Generate self-signed certificate
-  community.crypto.openssl_certificate:
+  community.crypto.x509_certificate:
     path: /etc/harbor/ssl/cert.pem
     privatekey_path: /etc/harbor/ssl/key.pem
     common_name: "{{ ansible_facts['default_ipv4']['address'] }}"
