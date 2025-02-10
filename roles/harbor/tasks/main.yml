@@ -73,7 +73,7 @@
 
 - name: Create harbor.yml configuration file
   copy:
-    dest: /tmp/harbor/harbor.yml
+    dest: /tmp/harbor/harbor/harbor.yml
     content: |
       hostname: 192.168.1.27  # Replace with actual IP
       http:
@@ -100,7 +100,7 @@
 
 - name: Ensure harbor.yml includes HTTPS configuration
   blockinfile:
-    path: /tmp/harbor/harbor.yml
+    path: /tmp/harbor/harbor/harbor.yml
     block: |
       https:
         port: 443
@@ -113,10 +113,10 @@
 
 - name: Install Harbor
   shell: |
-    cd /tmp/harbor
+    cd /tmp/harbor/harbor
     ./install.sh
   args:
-    chdir: /tmp/harbor
+    chdir: /tmp/harbor/harbor
     executable: /bin/bash
   register: install_harbor_result
 - debug:
