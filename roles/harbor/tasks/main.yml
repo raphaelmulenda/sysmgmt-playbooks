@@ -39,7 +39,7 @@
   get_url:
     url: "https://github.com/goharbor/harbor/releases/download/v2.6.0/harbor-offline-installer-v2.6.0.tgz"
     dest: /tmp/harbor-offline-installer-v2.6.0.tgz
-    timeout: 1800  # Increase timeout to accommodate slower connections
+    timeout: 3600  # Increase timeout to accommodate slower connections
     checksum: "sha256:76ddcc68a991eb7f232b3c8cbe77f9033bb55db9b38d8d5e6cbd9ec29e32557c"
   when: not harbor_installer_stat.stat.exists
   register: download_harbor
