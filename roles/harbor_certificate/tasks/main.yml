@@ -7,12 +7,13 @@
   become: yes
 
 - name: Generate self-signed certificate
-  openssl_certificate:
+  community.crypto.openssl_certificate:
     path: /etc/harbor/ssl/cert.pem
     privatekey_path: /etc/harbor/ssl/key.pem
     common_name: "{{ ansible_facts['default_ipv4']['address'] }}"
     valid_for: 365
     selfsigned: yes
+    provider: selfsigned
   become: yes
 
 - name: Set permissions for private key
