@@ -6,14 +6,22 @@
     mode: '0755'
   become: yes
 
+- name: Generate private key
+  community.crypto.openssl_privatekey:
+    path: /etc/harbor/ssl/key.pem
+  become: yes
+
 - name: Generate self-signed certificate
   community.crypto.x509_certificate:
     path: /etc/harbor/ssl/cert.pem
     privatekey_path: /etc/harbor/ssl/key.pem
-    common_name: "{{ ansible_facts['default_ipv4']['address'] }}"
-    valid_for: 365
-    selfsigned: yes
+    subject:
+      common_name: "{{ ansible_facts['default_ipv4']['address'] }}"
+    issuer:
+      common_name: "{{ ansible_facts['default_ipv4']['address'] }}"
     provider: selfsigned
+    selfsigned_not_before: now
+    selfsigned_not_after: "+365d"
   become: yes
 
 - name: Set permissions for private key
