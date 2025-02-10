@@ -4,6 +4,8 @@
     - docker
   gather_facts: yes
   become: true
+  vars:
+    harbor_https_enabled: true  # Ensure this variable is defined
   pre_tasks:
     - name: Ensure servers are reachable
       ping:
@@ -26,6 +28,12 @@
     #     name: docker
     #   when: inventory_hostname in groups['docker']
     #   tags: docker
+
+    - name: Generate self-signed certificate for Harbor
+      include_role:
+        name: harbor_certificate
+      when: inventory_hostname in groups['docker']
+      tags: harbor-certificate
 
     - name: Include Harbor role
       include_role:

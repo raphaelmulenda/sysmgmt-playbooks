@@ -1,0 +1,28 @@
+---
+- name: Ensure SSL directory exists
+  file:
+    path: /etc/harbor/ssl
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Generate self-signed certificate
+  openssl_certificate:
+    path: /etc/harbor/ssl/cert.pem
+    privatekey_path: /etc/harbor/ssl/key.pem
+    common_name: "{{ ansible_facts['default_ipv4']['address'] }}"
+    valid_for: 365
+    selfsigned: yes
+  become: yes
+
+- name: Set permissions for private key
+  file:
+    path: /etc/harbor/ssl/key.pem
+    mode: '0600'
+  become: yes
+
+- name: Set permissions for certificate
+  file:
+    path: /etc/harbor/ssl/cert.pem
+    mode: '0644'
+  become: yes
