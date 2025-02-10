@@ -40,7 +40,7 @@
     url: "https://github.com/goharbor/harbor/releases/download/v2.6.0/harbor-offline-installer-v2.6.0.tgz"
     dest: /tmp/harbor-offline-installer-v2.6.0.tgz
     timeout: 3600  # Increase timeout to accommodate slower connections
-    checksum: "sha256:76ddcc68a991eb7f232b3c8cbe77f9033bb55db9b38d8d5e6cbd9ec29e32557c"
+    checksum: "sha256:d10e21a793f17a1ef7603593c7988cda684f763c5cd67e1f6ae3fca668573d01"
   when: not harbor_installer_stat.stat.exists
   register: download_harbor
 - debug:
@@ -53,16 +53,7 @@
 - debug:
     var: harbor_installer_tgz_stat.stat.size  # Check the file size
 
-- name: Extract Harbor installer
-  unarchive:
-    src: /tmp/harbor-offline-installer-v2.6.0.tgz
-    dest: /tmp
-    remote_src: yes
-  register: extract_harbor
-- debug:
-    var: extract_harbor
-
-- name: Ensure Harbor configuration directory exists
+- name: Ensure Harbor extraction directory exists
   file:
     path: /tmp/harbor
     state: directory
@@ -71,9 +62,18 @@
 - debug:
     var: create_harbor_dir
 
+- name: Extract Harbor installer
+  unarchive:
+    src: /tmp/harbor-offline-installer-v2.6.0.tgz
+    dest: /tmp/harbor
+    remote_src: yes
+  register: extract_harbor
+- debug:
+    var: extract_harbor
+
 - name: Create harbor.yml configuration file
   copy:
-    dest: /tmp/harbor/harbor.yml
+    dest: /tmp/harbor/harbor/harbor.yml  # Adjusted path based on extracted structure
     content: |
       hostname: 192.168.1.27  # Replace with actual IP
       http:
@@ -100,10 +100,10 @@
 
 - name: Install Harbor
   shell: |
-    cd /tmp/harbor
+    cd /tmp/harbor/harbor
     ./install.sh
   args:
-    chdir: /tmp/harbor
+    chdir: /tmp/harbor/harbor
     executable: /bin/bash
   register: install_harbor_result
 - debug:
