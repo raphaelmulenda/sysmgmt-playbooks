@@ -150,7 +150,7 @@
 
 - name: Ensure Harbor is running
   uri:
-    url: "http{% if harbor_https_enabled | default(true) %}s{% endif %}://localhost:{% if harbor_https_enabled | default(true) %}443{% else %}80{% endif %}"
+    url: "http{% if harbor_https_enabled | default(true) %}s{% endif %}://localhost:{% if harbor_https_enabled | default(true) %}443{% else %}8080{% endif %}"
     status_code: 200
   register: harbor_status
   until: harbor_status.status == 200

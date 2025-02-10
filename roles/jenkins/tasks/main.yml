@@ -126,6 +126,10 @@
     - pipeline
     - credentials
     - ssh-slaves
+    - github  
+    - pipeline-graph-view  
+    - dark-theme  
+    - ssh-agent  
   register: install_plugins
 - debug:
     var: install_plugins

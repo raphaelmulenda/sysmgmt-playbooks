@@ -11,23 +11,23 @@
       ping:
 
   tasks:
-    # - name: Include Jenkins role
-    #   include_role:
-    #     name: jenkins
-    #   when: inventory_hostname in groups['jenkins']
-    #   tags: jenkins
+    - name: Include Jenkins role
+      include_role:
+        name: jenkins
+      when: inventory_hostname in groups['jenkins']
+      tags: jenkins
 
-    # - name: Include Ansible role
-    #   include_role:
-    #     name: ansible
-    #   when: inventory_hostname in groups['jenkins']
-    #   tags: ansible
+    - name: Include Ansible role
+      include_role:
+        name: ansible
+      when: inventory_hostname in groups['jenkins']
+      tags: ansible
 
-    # - name: Include Docker role
-    #   include_role:
-    #     name: docker
-    #   when: inventory_hostname in groups['docker']
-    #   tags: docker
+    - name: Include Docker role
+      include_role:
+        name: docker
+      when: inventory_hostname in groups['docker']
+      tags: docker
 
     # - name: Generate self-signed certificate for Harbor
     #   include_role:
