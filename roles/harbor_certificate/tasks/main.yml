@@ -16,7 +16,7 @@
     path: /etc/harbor/ssl/cert.pem
     privatekey_path: /etc/harbor/ssl/key.pem
     provider: selfsigned
-    selfsigned_create_subject_key_identifier: true
+    selfsigned_create_subject_key_identifier: create_if_not_provided
     selfsigned_not_before: now
     selfsigned_not_after: "+365d"
   become: yes
