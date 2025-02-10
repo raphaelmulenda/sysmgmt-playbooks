@@ -17,8 +17,8 @@
     privatekey_path: /etc/harbor/ssl/key.pem
     provider: selfsigned
     selfsigned_create_subject_key_identifier: create_if_not_provided
-    selfsigned_not_before: "now"  # Use "now" for the current time
-    selfsigned_not_after: "+365d"  # Valid for 365 days
+    selfsigned_not_before: "1970-01-01T00:00:00Z"
+    selfsigned_not_after: "+365d"
   become: yes
 
 - name: Set permissions for private key
