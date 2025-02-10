@@ -130,6 +130,9 @@
     - pipeline-graph-view  
     - dark-theme  
     - ssh-agent  
+    - docker-pipeline  
+    - ansible  
+    - workflow-multibranch 
   register: install_plugins
 - debug:
     var: install_plugins

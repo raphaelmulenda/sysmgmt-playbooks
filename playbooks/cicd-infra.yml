@@ -5,7 +5,7 @@
   gather_facts: yes
   become: true
   vars:
-    harbor_https_enabled: false  # Ensure this variable is defined
+    harbor_https_enabled: false  # this variable is defined for https
   pre_tasks:
     - name: Ensure servers are reachable
       ping:
