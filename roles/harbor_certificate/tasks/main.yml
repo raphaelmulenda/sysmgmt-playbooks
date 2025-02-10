@@ -17,8 +17,6 @@
     privatekey_path: /etc/harbor/ssl/key.pem
     subject:
       common_name: "{{ ansible_facts['default_ipv4']['address'] }}"
-    issuer:
-      common_name: "{{ ansible_facts['default_ipv4']['address'] }}"
     provider: selfsigned
     selfsigned_not_before: now
     selfsigned_not_after: "+365d"
