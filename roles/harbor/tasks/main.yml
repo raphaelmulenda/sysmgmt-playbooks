@@ -53,19 +53,19 @@
 - debug:
     var: harbor_installer_tgz_stat.stat.size
 
-- name: Ensure Harbor extraction directory exists
-  file:
-    path: /home/rmulenda/Documents/Devops/harbor
-    state: directory
-    mode: '0755'
-  register: create_harbor_dir
-- debug:
-    var: create_harbor_dir
+# - name: Ensure Harbor extraction directory exists
+#   file:
+#     path: /home/rmulenda/Documents/Devops/harbor
+#     state: directory
+#     mode: '0755'
+#   register: create_harbor_dir
+# - debug:
+#     var: create_harbor_dir
 
 - name: Extract Harbor installer
   unarchive:
     src: /home/rmulenda/Documents/Devops/harbor-offline-installer-v2.6.0.tgz
-    dest: /home/rmulenda/Documents/Devops/harbor
+    dest: /home/rmulenda/Documents/Devops/
     remote_src: yes
   register: extract_harbor
 - debug:
