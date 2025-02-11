@@ -132,7 +132,10 @@
     - ssh-agent  
     - docker-pipeline  
     - ansible  
-    - workflow-multibranch 
+    - workflow-multibranch
+    - branch-api
+    - pipeline-multibranch:800.v5f0a_a_660950e
+    - branch-api:2.1208.vf528356feca_4
   register: install_plugins
 - debug:
     var: install_plugins
