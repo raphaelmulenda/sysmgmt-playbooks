@@ -120,22 +120,26 @@
     url_username: "admin"
     url_password: "{{ jenkins_admin_password.stdout }}"
   loop:
-    - git
-    - docker
-    - ansible
+    - build-timeout
+    - credentials-binding
+    - timestamper
+    - ws-cleanup
+    - workflow-aggregator
+    - github-branch-source
+    - pipeline-github-lib
+    - pipeline-graph-view
     - pipeline
-    - credentials
+    - git
     - ssh-slaves
-    - github  
-    - pipeline-graph-view  
-    - dark-theme  
-    - ssh-agent  
-    - docker-pipeline  
-    - ansible  
-    - workflow-multibranch
-    - branch-api
-    - pipeline-multibranch:800.v5f0a_a_660950e
-    - branch-api:2.1208.vf528356feca_4
+    - matrix-auth
+    - pam-auth
+    - ldap
+    - dark-theme
+    - ssh
+    - javadoc
+    - pipeline-multibranch-defaults
+    - multibranch-scan-webhook-trigger
+    - multibranch-pipeline-inline-definition
   register: install_plugins
 - debug:
     var: install_plugins
