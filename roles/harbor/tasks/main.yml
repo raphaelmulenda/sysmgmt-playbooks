@@ -30,7 +30,7 @@
 
 - name: Check if Harbor installer already exists
   stat:
-    path: /tmp/harbor-offline-installer-v2.6.0.tgz
+    path: /home/rmulenda/Documents/Devops/harbor-offline-installer-v2.6.0.tgz
   register: harbor_installer_stat
 - debug:
     var: harbor_installer_stat.stat.exists
@@ -38,7 +38,7 @@
 - name: Download Harbor installer if not present
   get_url:
     url: "https://github.com/goharbor/harbor/releases/download/v2.6.0/harbor-offline-installer-v2.6.0.tgz"
-    dest: /tmp/harbor-offline-installer-v2.6.0.tgz
+    dest: /home/rmulenda/Documents/Devops/harbor-offline-installer-v2.6.0.tgz
     timeout: 3600  # Increase timeout to accommodate slower connections
     checksum: "sha256:d10e21a793f17a1ef7603593c7988cda684f763c5cd67e1f6ae3fca668573d01"
   when: not harbor_installer_stat.stat.exists
@@ -48,14 +48,14 @@
 
 - name: Verify Harbor installer size
   stat:
-    path: /tmp/harbor-offline-installer-v2.6.0.tgz
+    path: /home/rmulenda/Documents/Devops/harbor-offline-installer-v2.6.0.tgz
   register: harbor_installer_tgz_stat
 - debug:
     var: harbor_installer_tgz_stat.stat.size
 
 - name: Ensure Harbor extraction directory exists
   file:
-    path: /tmp/harbor
+    path: /home/rmulenda/Documents/Devops/harbor
     state: directory
     mode: '0755'
   register: create_harbor_dir
@@ -64,8 +64,8 @@
 
 - name: Extract Harbor installer
   unarchive:
-    src: /tmp/harbor-offline-installer-v2.6.0.tgz
-    dest: /tmp/harbor
+    src: /home/rmulenda/Documents/Devops/harbor-offline-installer-v2.6.0.tgz
+    dest: /home/rmulenda/Documents/Devops/harbor
     remote_src: yes
   register: extract_harbor
 - debug:
@@ -73,7 +73,7 @@
 
 - name: Create harbor.yml configuration file
   copy:
-    dest: /tmp/harbor/harbor/harbor.yml
+    dest: /home/rmulenda/Documents/Devops/harbor/harbor.yml
     content: |
       hostname: 192.168.1.27  # Replace with actual IP
       http:
@@ -113,10 +113,10 @@
 
 - name: Install Harbor
   shell: |
-    cd /tmp/harbor/harbor
+    cd /home/rmulenda/Documents/Devops/harbor
     ./install.sh
   args:
-    chdir: /tmp/harbor/harbor
+    chdir: /home/rmulenda/Documents/Devops/harbor
     executable: /bin/bash
   register: install_harbor_result
 - debug:
