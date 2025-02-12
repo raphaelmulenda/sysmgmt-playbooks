@@ -23,6 +23,12 @@
       when: inventory_hostname in groups['jenkins']
       tags: ansible
 
+    - name: Include Docker role for Jenkins
+      include_role:
+        name: docker
+      when: inventory_hostname in groups['jenkins']
+      tags: docker
+
     - name: Include Docker role
       include_role:
         name: docker

@@ -143,3 +143,9 @@
   register: install_plugins
 - debug:
     var: install_plugins
+
+- name: Restart Jenkins (if needed)
+  systemd:
+    name: jenkins
+    state: restarted
+  when: install_plugins.changed  # Restart only if plugins were installed/updated

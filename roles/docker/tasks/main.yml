@@ -70,25 +70,30 @@
 
 - name: Add user to docker group
   user:
-    name: rmulenda
+    name: "{{ 'jenkins' if inventory_hostname in groups['jenkins'] else 'rmulenda' }}"
     groups: docker
     append: yes
   register: add_user_to_group_result
 - debug:
-    msg: "User rmulenda added to docker group: {{ add_user_to_group_result.changed }}"
+    msg: "User added to docker group: {{ add_user_to_group_result.changed }}"
 
-- name: Install Docker Compose
+- name: Install Docker Compose (only on Docker servers)
   get_url:
     url: "https://github.com/docker/compose/releases/download/v2.5.0/docker-compose-linux-x86_64"
     dest: /usr/local/bin/docker-compose
     mode: 'u+x,g+x'
+  when: inventory_hostname in groups['docker']
   register: install_docker_compose_result
-- debug:
-    msg: "Docker Compose installed: {{ install_docker_compose_result.changed }}"
 
-- name: Validate Docker Compose installation
+- debug:
+    msg: "Docker Compose installed: {{ install_docker_compose_result }}"
+  when: inventory_hostname in groups['docker']
+
+- name: Validate Docker Compose installation (only on Docker servers)
   command: docker-compose --version
   register: docker_compose_version
   changed_when: false
+  when: inventory_hostname in groups['docker']
 - debug:
     msg: "Docker Compose version: {{ docker_compose_version.stdout }}"
+  when: inventory_hostname in groups['docker']
