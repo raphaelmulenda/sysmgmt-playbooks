@@ -59,3 +59,5 @@ jenkins ansible_host=192.168.1.26 ansible_user=rmulenda
 
 [docker]
 docker ansible_host=192.168.1.27 ansible_user=rmulenda
+
+
