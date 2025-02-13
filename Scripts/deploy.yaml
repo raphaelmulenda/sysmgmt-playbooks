@@ -21,10 +21,10 @@
 
     - name: Log in to Harbor registry on Docker server
       shell: |
-        echo "{{ HARBOR_PASS }}" | docker login -u "{{ HARBOR_USER }}" --password-stdin "{{ harbor_registry }}"
+        echo "{{ harbor_password }}" | docker login -u "{{ harbor_username }}" --password-stdin "{{ harbor_registry }}"
       environment:
-        harbor_username: "{{ lookup('env', 'HARBOR_USER') }}"
-        harbor_password: "{{ lookup('env', 'HARBOR_PASS') }}"
+        harbor_username: "{{ harbor_username }}"
+        harbor_password: "{{ harbor_password }}"
       delegate_to: "{{ inventory_hostname }}"  # Ensure this runs on the Docker server
 
     - name: Pull latest image from Harbor on Docker server
