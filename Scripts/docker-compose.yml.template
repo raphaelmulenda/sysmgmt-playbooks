@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  ${app_name}:
+    image: ${harbor_registry}/cicd-infra/${app_name}:${image_tag}  # Use harbor_registry, app_name, and image_tag
+    container_name: ${app_name}
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      - ENV=production
+      - DB_HOST=db
+      - DB_USER=user
+      - DB_PASS=password
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge

@@ -11,7 +11,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 // This step checks out your code from GitHub
-                git credentialsId: 'github-credentials', url: 'git@github.com:Opsmiths-Technologies/cicd-infra.git', branch: 'main'
+                git credentialsId: 'github-org-credentials', url: 'https://github.com/Opsmiths-Technologies/cicd-infra.git', branch: 'main'
             }
         }
         stage('Build Docker Image') {
@@ -24,7 +24,9 @@ pipeline {
             steps {
                 // Logs into Harbor using the credentials you've set up
                 withCredentials([usernamePassword(credentialsId: 'harbor-credentials', usernameVariable: 'HARBOR_USER', passwordVariable: 'HARBOR_PASS')]) {
-                    sh "docker login -u $HARBOR_USER -p $HARBOR_PASS $HARBOR_URL"
+                    sh """
+                    echo '$HARBOR_PASS' | docker login -u $HARBOR_USER --password-stdin $HARBOR_URL
+                    """
                 }
             }
         }
@@ -34,14 +36,15 @@ pipeline {
                 sh "docker push $HARBOR_URL/$HARBOR_PROJECT/$IMAGE_NAME:$IMAGE_TAG"
             }
         }
-        // Add the Ansible deployment stage here
         stage('Trigger Ansible Deployment') {
             steps {
                 // Run Ansible playbook locally since they are on the same server
-                sh """
-                ansible-playbook -i /etc/ansible/inventory.ini /etc/ansible/deploy.yml \
-                --extra-vars "image=$HARBOR_URL/$HARBOR_PROJECT/$IMAGE_NAME:$IMAGE_TAG app_name=$APP_NAME"
-                """
+                withCredentials([usernamePassword(credentialsId: 'harbor-credentials', usernameVariable: 'HARBOR_USER', passwordVariable: 'HARBOR_PASS')]) {
+                    sh """
+                    ansible-playbook -i /etc/ansible/inventory.ini /etc/ansible/deploy.yml \
+                    --extra-vars "image=$HARBOR_URL/$HARBOR_PROJECT/$IMAGE_NAME:$IMAGE_TAG app_name=$APP_NAME"
+                    """
+                }
             }
         }
     }
