@@ -42,7 +42,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'harbor-credentials', usernameVariable: 'HARBOR_USER', passwordVariable: 'HARBOR_PASS')]) {
                     sh """
                     ansible-playbook -i /etc/ansible/inventory.ini /etc/ansible/deploy.yml \
-                    --extra-vars "image=$HARBOR_URL/$HARBOR_PROJECT/$IMAGE_NAME:$IMAGE_TAG app_name=$APP_NAME"
+                    --extra-vars "image=$HARBOR_URL/$HARBOR_PROJECT/$IMAGE_NAME:$IMAGE_TAG app_name=$APP_NAME harbor_username=$HARBOR_USER harbor_password=$HARBOR_PASS"
                     """
                 }
             }
