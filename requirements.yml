@@ -1,2 +1,6 @@
-- src: geerlingguy.java
-- src: geerlingguy.docker
+# - src: geerlingguy.java
+# - src: geerlingguy.docker
+- src: https://github.com/ansible-community/ansible-vault.git
+  name: ansible-community.ansible-vault
+  scm: git
+  version: master
