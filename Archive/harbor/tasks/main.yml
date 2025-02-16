@@ -1,0 +1,160 @@
+---
+- name: Ensure Python is installed
+  apt:
+    name: python3
+    state: present
+  register: install_python
+- debug:
+    var: install_python
+
+- name: Check if Harbor is already installed
+  stat:
+    path: /data/harbor/
+  register: harbor_installed
+- debug:
+    var: harbor_installed
+
+- name: Install required dependencies
+  apt:
+    name:
+      - curl
+      - tar
+      - bzip2
+      - gzip
+      - xz-utils
+      - zstd
+    state: present
+  register: install_dependencies
+- debug:
+    var: install_dependencies
+
+- name: Check if Harbor installer already exists
+  stat:
+    path: /home/rmulenda/Documents/Devops/harbor-offline-installer-v2.6.0.tgz
+  register: harbor_installer_stat
+- debug:
+    var: harbor_installer_stat.stat.exists
+
+- name: Download Harbor installer if not present
+  get_url:
+    url: "https://github.com/goharbor/harbor/releases/download/v2.6.0/harbor-offline-installer-v2.6.0.tgz"
+    dest: /home/rmulenda/Documents/Devops/harbor-offline-installer-v2.6.0.tgz
+    timeout: 3600  # Increase timeout to accommodate slower connections
+    checksum: "sha256:d10e21a793f17a1ef7603593c7988cda684f763c5cd67e1f6ae3fca668573d01"
+  when: not harbor_installer_stat.stat.exists
+  register: download_harbor
+- debug:
+    var: download_harbor
+
+- name: Verify Harbor installer size
+  stat:
+    path: /home/rmulenda/Documents/Devops/harbor-offline-installer-v2.6.0.tgz
+  register: harbor_installer_tgz_stat
+- debug:
+    var: harbor_installer_tgz_stat.stat.size
+
+# - name: Ensure Harbor extraction directory exists
+#   file:
+#     path: /home/rmulenda/Documents/Devops/harbor
+#     state: directory
+#     mode: '0755'
+#   register: create_harbor_dir
+# - debug:
+#     var: create_harbor_dir
+
+- name: Extract Harbor installer
+  unarchive:
+    src: /home/rmulenda/Documents/Devops/harbor-offline-installer-v2.6.0.tgz
+    dest: /home/rmulenda/Documents/Devops/
+    remote_src: yes
+  register: extract_harbor
+- debug:
+    var: extract_harbor
+
+- name: Create harbor.yml configuration file
+  copy:
+    dest: /home/rmulenda/Documents/Devops/harbor/harbor.yml
+    content: |
+      hostname: 192.168.1.27  # Replace with actual IP
+      http:
+        port: 8080
+      harbor_admin_password: "Harbor12345"
+      database:
+        password: "root123"
+      data_volume: /data/harbor
+      log:
+        level: info
+        local:
+          rotate_count: 50
+          rotate_size: 200M
+          location: /var/log/harbor
+      jobservice:
+        max_job_workers: 10
+      chart:
+        absolute_url: disabled
+      notification:
+        webhook_job_max_retry: 10
+  register: create_harbor_config
+- debug:
+    var: create_harbor_config
+
+# - name: Ensure harbor.yml includes HTTPS configuration
+#   blockinfile:
+#     path: /tmp/harbor/harbor/harbor.yml
+#     block: |
+#       https:
+#         port: 443
+#         certificate: /etc/harbor/ssl/cert.pem
+#         private_key: /etc/harbor/ssl/key.pem
+#       hostname: "{{ ansible_facts['default_ipv4']['address'] }}"
+#     marker: "# {mark} ANSIBLE MANAGED BLOCK - HTTPS CONFIGURATION"
+#   become: yes
+#   when: harbor_https_enabled | default(true)
+
+- name: Install Harbor
+  shell: |
+    cd /home/rmulenda/Documents/Devops/harbor
+    ./install.sh
+  args:
+    chdir: /home/rmulenda/Documents/Devops/harbor
+    executable: /bin/bash
+  register: install_harbor_result
+- debug:
+    var: install_harbor_result
+
+# - name: Ensure Docker certificate directory exists for Harbor's IP
+#   file:
+#     path: "/etc/docker/certs.d/{{ ansible_facts['default_ipv4']['address'] }}"
+#     state: directory
+#     mode: '0755'
+#   become: yes
+#   when: harbor_https_enabled | default(true)
+
+# - name: Ensure Docker trusts the self-signed certificate
+#   copy:
+#     src: /etc/harbor/ssl/cert.pem
+#     dest: /etc/docker/certs.d/{{ ansible_facts['default_ipv4']['address'] }}/ca.crt
+#     owner: root
+#     group: root
+#     mode: '0644'
+#     remote_src: yes
+#   become: yes
+#   when: harbor_https_enabled | default(true)
+
+- name: Restart Docker
+  service:
+    name: docker
+    state: restarted
+  become: yes
+  when: harbor_https_enabled | default(true)
+
+- name: Ensure Harbor is running
+  uri:
+    url: "http{% if harbor_https_enabled | default(true) %}s{% endif %}://localhost:{% if harbor_https_enabled | default(true) %}443{% else %}8080{% endif %}"
+    status_code: 200
+  register: harbor_status
+  until: harbor_status.status == 200
+  retries: 10
+  delay: 10
+- debug:
+    var: harbor_status

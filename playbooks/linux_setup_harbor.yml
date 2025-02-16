@@ -1,0 +1,8 @@
+---
+- hosts: "harbor"
+  serial: 1
+  become: true
+  become_user: rmulenda
+  roles:
+    - role: harbor
+      tags: always  # Ensures the role is always included, but tasks are filtered by tags

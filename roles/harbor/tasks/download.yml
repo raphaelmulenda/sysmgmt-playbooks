@@ -1,0 +1,46 @@
+---
+# Tasks to download and extract the Harbor package.
+
+- name: Ensure home directory exists
+  ansible.builtin.file:
+    path: "{{ home_dir }}"
+    state: directory
+    mode: '0755'
+    owner: rmulenda
+    group: rmulenda
+  tags: linux_download_harbor
+
+- name: Ensure artifacts directory exists
+  ansible.builtin.file:
+    path: "{{ artifact_dir }}"
+    state: directory
+    mode: '0755'
+    owner: rmulenda
+    group: rmulenda
+  tags: linux_download_harbor
+
+- name: Download Harbor package
+  ansible.builtin.get_url:
+    url: "{{ harbor_repo }}/{{ harbor_package }}"
+    dest: "{{ artifact_dir }}/{{ harbor_package }}"
+    mode: '0440'
+    owner: rmulenda
+    group: rmulenda
+  tags: linux_download_harbor
+
+- name: Extract Harbor package
+  ansible.builtin.unarchive:
+    src: "{{ artifact_dir }}/{{ harbor_package }}"
+    dest: "{{ home_dir }}"
+    remote_src: yes
+  tags: linux_download_harbor
+
+- name: Ensure home directory permissions are updated
+  ansible.builtin.file:
+    path: "{{ home_dir }}"
+    state: directory
+    mode: '0755'
+    owner: rmulenda
+    group: rmulenda
+    recurse: true
+  tags: linux_download_harbor

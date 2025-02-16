@@ -1,0 +1,21 @@
+# Configuration file of Harbor
+
+# The IP address or hostname to access admin UI and registry service.
+# DO NOT use localhost or 127.0.0.1, because Harbor needs to be accessed by external clients.
+hostname: {{ ansible_host }}
+
+# http related config
+http:
+  # port for http, default is 80. If https enabled, this port will redirect to https port
+  port: 80
+
+# https related config
+https:
+  # https port for harbor, default is 443
+  port: 443
+  # The path of cert and key files for nginx
+  certificate: {{ home_dir }}/certs/{{ ansible_host }}.crt
+  private_key: {{ home_dir }}/certs/{{ ansible_host }}.key
+  # enable strong ssl ciphers (default: false)
+  # strong_ssl_ciphers: false
+...

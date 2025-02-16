@@ -1,0 +1,12 @@
+---
+# Tasks to stop Harbor services.
+
+- name: Stop Harbor service using Docker Compose
+  ansible.builtin.shell: "cd {{ home_dir }}/harbor; docker compose down -v"
+  tags: linux_stop_harbor
+
+- name: Ensure Docker service is stopped
+  ansible.builtin.service:
+    name: docker
+    state: stopped
+  tags: linux_stop_harbor

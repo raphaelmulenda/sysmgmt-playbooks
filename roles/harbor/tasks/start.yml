@@ -1,0 +1,12 @@
+---
+# Tasks to start Harbor services.
+
+- name: Ensure Docker service is started
+  ansible.builtin.service:
+    name: docker
+    state: started
+  tags: linux_start_harbor
+
+- name: Start Harbor service using Docker Compose
+  ansible.builtin.shell: "cd {{ home_dir }}/harbor; docker compose up -d"
+  tags: linux_start_harbor

@@ -1,0 +1,98 @@
+---
+# Tasks to install and configure Harbor, including certificate generation.
+
+- name: Ensure sscg package is present
+  ansible.builtin.dnf:
+    name: sscg
+    state: present
+  tags: linux_install_harbor
+
+- name: Ensure certs directory exists
+  ansible.builtin.file:
+    path: "{{ home_dir }}/certs"
+    state: directory
+    mode: '0700'
+    owner: rmulenda
+    group: rmulenda
+    recurse: true
+  tags: linux_install_harbor
+
+- name: Check if certificate file exists
+  ansible.builtin.stat:
+    path: "{{ home_dir }}/certs/{{ ansible_host }}.crt"
+  register: cert_result
+  tags: linux_install_harbor
+
+- name: Generate self-signed certificate
+  ansible.builtin.shell: >
+    cd {{ home_dir }}/certs;
+    sscg --cert-file={{ ansible_host }}.crt
+    --cert-key-file={{ ansible_host }}.key
+    --ca-file=ca.crt
+    --ca-key-file=ca.key
+  when: not cert_result.stat.exists
+  tags: linux_install_harbor
+
+- name: Convert crt file to cert format for Docker
+  ansible.builtin.shell: >
+    openssl x509 -inform PEM
+    -in {{ home_dir }}/certs/{{ ansible_host }}.crt
+    -out {{ home_dir }}/certs/{{ ansible_host }}.cert
+  tags: linux_install_harbor
+
+- name: Ensure certs directory permissions are updated
+  ansible.builtin.file:
+    path: "{{ home_dir }}/certs"
+    state: directory
+    mode: '0700'
+    owner: rmulenda
+    group: rmulenda
+    recurse: yes
+  tags: linux_install_harbor
+
+- name: Ensure Docker certs directory exists
+  ansible.builtin.file:
+    path: "/etc/docker/certs.d/{{ ansible_host }}"
+    state: directory
+    mode: '0700'
+  tags: linux_install_harbor
+
+- name: Copy server certificate to Docker certs directory
+  ansible.builtin.copy:
+    src: "{{ home_dir }}/certs/{{ ansible_host }}.cert"
+    dest: "/etc/docker/certs.d/{{ ansible_host }}"
+    remote_src: yes
+  tags: linux_install_harbor
+
+- name: Copy server key to Docker certs directory
+  ansible.builtin.copy:
+    src: "{{ home_dir }}/certs/{{ ansible_host }}.key"
+    dest: "/etc/docker/certs.d/{{ ansible_host }}"
+    remote_src: yes
+  tags: linux_install_harbor
+
+- name: Copy CA certificate to Docker certs directory
+  ansible.builtin.copy:
+    src: "{{ home_dir }}/certs/ca.crt"
+    dest: "/etc/docker/certs.d/{{ ansible_host }}"
+    remote_src: yes
+  tags: linux_install_harbor
+
+- name: Ensure Docker service is restarted
+  ansible.builtin.service:
+    name: docker
+    state: restarted
+  tags: linux_install_harbor
+
+- name: Configure Harbor with harbor.yml
+  ansible.builtin.template:
+    src: "harbor.yml.j2"
+    dest: "{{ home_dir }}/harbor/harbor.yml"
+    owner: rmulenda
+    group: rmulenda
+    mode: '0755'
+  tags: linux_install_harbor
+
+- name: Execute Harbor installation script
+  ansible.builtin.shell: "{{ home_dir }}/harbor/install.sh --with-trivy"
+  tags: linux_install_harbor

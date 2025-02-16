@@ -1,0 +1,32 @@
+# ---
+# # Tasks to expose Harbor service ports in the firewall.
+
+# - name: Expose HTTP port
+#   ansible.builtin.firewalld:
+#     port: "{{ harbor_http_port }}/tcp"
+#     permanent: true
+#     immediate: true
+#     state: enabled
+#   tags: linux_expose_harbor
+
+# - name: Expose HTTPS port
+#   ansible.builtin.firewalld:
+#     port: "{{ harbor_https_port }}/tcp"
+#     permanent: true
+#     immediate: true
+#     state: enabled
+#   tags: linux_expose_harbor
+
+# - name: Expose Docker Content Trust service port
+#   ansible.builtin.firewalld:
+#     port: "{{ harbor_trustservice_port }}/tcp"
+#     permanent: true
+#     immediate: true
+#     state: enabled
+#   tags: linux_expose_harbor
+
+# - name: Restart firewalld service
+#   ansible.builtin.service:
+#     name: firewalld
+#     state: restarted
+#   tags: linux_expose_harbor

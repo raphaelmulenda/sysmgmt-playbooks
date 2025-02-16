@@ -1,0 +1,6 @@
+---
+# Tasks to validate connectivity to the target host.
+
+- name: Validate connectivity with ping
+  ansible.builtin.ping:
+  tags: linux_ping

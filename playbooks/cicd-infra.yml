@@ -4,6 +4,7 @@
     - docker
   gather_facts: yes
   become: true
+  become_user: rmulenda
   vars:
     harbor_https_enabled: false  # this variable is defined for https
   pre_tasks:

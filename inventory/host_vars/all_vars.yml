@@ -1,0 +1,6 @@
+---
+home_dir: /home/rmulenda/Documents/Devops/harbor/stack
+artifact_dir: //home/rmulenda/Documents/Devops/harbor/stack/artifacts
+extract_dir: /home/rmulenda/Documents/Devops/harbor/stack/extracts
+harbor_repo: https://github.com/goharbor/harbor/releases/download/v2.12.2
+harbor_package: "harbor-offline-installer-v2.12.2.tgz"
