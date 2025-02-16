@@ -19,6 +19,12 @@
     group: rmulenda
   tags: linux_download_harbor
 
+- name: Check if Harbor package already exists
+  ansible.builtin.stat:
+    path: "{{ artifact_dir }}/{{ harbor_package }}"
+  register: harbor_package_stat
+  tags: linux_download_harbor
+
 - name: Download Harbor package
   ansible.builtin.get_url:
     url: "{{ harbor_repo }}/{{ harbor_package }}"
@@ -26,6 +32,13 @@
     mode: '0440'
     owner: rmulenda
     group: rmulenda
+  when: not harbor_package_stat.stat.exists
+  tags: linux_download_harbor
+
+- name: Check if Harbor package has already been extracted
+  ansible.builtin.stat:
+    path: "{{ home_dir }}/harbor"  # Adjust this path based on the actual extracted directory name
+  register: harbor_extracted_stat
   tags: linux_download_harbor
 
 - name: Extract Harbor package
@@ -33,6 +46,10 @@
     src: "{{ artifact_dir }}/{{ harbor_package }}"
     dest: "{{ home_dir }}"
     remote_src: yes
+    owner: rmulenda
+    group: rmulenda
+    mode: '0755'
+  when: not harbor_extracted_stat.stat.exists
   tags: linux_download_harbor
 
 - name: Ensure home directory permissions are updated

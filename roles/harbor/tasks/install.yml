@@ -1,10 +1,19 @@
 ---
 # Tasks to install and configure Harbor, including certificate generation.
 
-- name: Ensure sscg package is present
-  ansible.builtin.dnf:
-    name: sscg
+- name: Ensure openssl package is present
+  ansible.builtin.package:
+    name: openssl
     state: present
+  tags: linux_install_harbor
+
+- name: Ensure Harbor data directory exists
+  ansible.builtin.file:
+    path: "{{ home_dir }}/data"
+    state: directory
+    mode: '0755'
+    owner: rmulenda
+    group: rmulenda
   tags: linux_install_harbor
 
 - name: Ensure certs directory exists
@@ -17,20 +26,51 @@
     recurse: true
   tags: linux_install_harbor
 
-- name: Check if certificate file exists
+- name: Check if CA certificate and key exist
   ansible.builtin.stat:
-    path: "{{ home_dir }}/certs/{{ ansible_host }}.crt"
-  register: cert_result
+    path: "{{ home_dir }}/certs/ca.crt"
+  register: ca_cert_result
   tags: linux_install_harbor
 
-- name: Generate self-signed certificate
+- name: Generate CA certificate and key
   ansible.builtin.shell: >
-    cd {{ home_dir }}/certs;
-    sscg --cert-file={{ ansible_host }}.crt
-    --cert-key-file={{ ansible_host }}.key
-    --ca-file=ca.crt
-    --ca-key-file=ca.key
-  when: not cert_result.stat.exists
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048
+    -keyout {{ home_dir }}/certs/ca.key
+    -out {{ home_dir }}/certs/ca.crt
+    -subj "/C=US/ST=State/L=City/O=Organization/OU=Unit/CN=CA"
+  when: not ca_cert_result.stat.exists
+  tags: linux_install_harbor
+
+- name: Check if server certificate and key exist
+  ansible.builtin.stat:
+    path: "{{ home_dir }}/certs/{{ ansible_host }}.crt"
+  register: server_cert_result
+  tags: linux_install_harbor
+
+- name: Generate server certificate signing request (CSR) and key
+  ansible.builtin.shell: >
+    openssl req -nodes -newkey rsa:2048
+    -keyout {{ home_dir }}/certs/{{ ansible_host }}.key
+    -out {{ home_dir }}/certs/{{ ansible_host }}.csr
+    -subj "/C=US/ST=State/L=City/O=Organization/OU=Unit/CN={{ ansible_host }}"
+  when: not server_cert_result.stat.exists
+  tags: linux_install_harbor
+
+- name: Sign server certificate with CA
+  ansible.builtin.shell: >
+    openssl x509 -req -days 365
+    -in {{ home_dir }}/certs/{{ ansible_host }}.csr
+    -CA {{ home_dir }}/certs/ca.crt
+    -CAkey {{ home_dir }}/certs/ca.key
+    -CAcreateserial
+    -out {{ home_dir }}/certs/{{ ansible_host }}.crt
+  when: not server_cert_result.stat.exists
+  tags: linux_install_harbor
+
+- name: Check if cert file exists
+  ansible.builtin.stat:
+    path: "{{ home_dir }}/certs/{{ ansible_host }}.cert"
+  register: cert_file_result
   tags: linux_install_harbor
 
 - name: Convert crt file to cert format for Docker
@@ -38,6 +78,7 @@
     openssl x509 -inform PEM
     -in {{ home_dir }}/certs/{{ ansible_host }}.crt
     -out {{ home_dir }}/certs/{{ ansible_host }}.cert
+  when: not cert_file_result.stat.exists
   tags: linux_install_harbor
 
 - name: Ensure certs directory permissions are updated
@@ -60,22 +101,25 @@
 - name: Copy server certificate to Docker certs directory
   ansible.builtin.copy:
     src: "{{ home_dir }}/certs/{{ ansible_host }}.cert"
-    dest: "/etc/docker/certs.d/{{ ansible_host }}"
+    dest: "/etc/docker/certs.d/{{ ansible_host }}/{{ ansible_host }}.cert"
     remote_src: yes
+    mode: '0600'
   tags: linux_install_harbor
 
 - name: Copy server key to Docker certs directory
   ansible.builtin.copy:
     src: "{{ home_dir }}/certs/{{ ansible_host }}.key"
-    dest: "/etc/docker/certs.d/{{ ansible_host }}"
+    dest: "/etc/docker/certs.d/{{ ansible_host }}/{{ ansible_host }}.key"
     remote_src: yes
+    mode: '0600'
   tags: linux_install_harbor
 
 - name: Copy CA certificate to Docker certs directory
   ansible.builtin.copy:
     src: "{{ home_dir }}/certs/ca.crt"
-    dest: "/etc/docker/certs.d/{{ ansible_host }}"
+    dest: "/etc/docker/certs.d/{{ ansible_host }}/ca.crt"
     remote_src: yes
+    mode: '0600'
   tags: linux_install_harbor
 
 - name: Ensure Docker service is restarted
@@ -90,9 +134,11 @@
     dest: "{{ home_dir }}/harbor/harbor.yml"
     owner: rmulenda
     group: rmulenda
-    mode: '0755'
+    mode: '0644'
   tags: linux_install_harbor
 
 - name: Execute Harbor installation script
-  ansible.builtin.shell: "{{ home_dir }}/harbor/install.sh --with-trivy"
+  ansible.builtin.command: "{{ home_dir }}/harbor/install.sh --with-trivy"
+  args:
+    chdir: "{{ home_dir }}/harbor"
   tags: linux_install_harbor
