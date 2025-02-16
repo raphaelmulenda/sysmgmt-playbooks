@@ -47,23 +47,19 @@
   register: server_cert_result
   tags: linux_install_harbor
 
-- name: Generate server certificate signing request (CSR) and key
-  ansible.builtin.shell: >
-    openssl req -nodes -newkey rsa:2048
-    -keyout {{ home_dir }}/certs/{{ ansible_host }}.key
-    -out {{ home_dir }}/certs/{{ ansible_host }}.csr
-    -subj "/C=US/ST=State/L=City/O=Organization/OU=Unit/CN={{ ansible_host }}"
-  when: not server_cert_result.stat.exists
+- name: Generate openssl.cnf configuration file
+  ansible.builtin.template:
+    src: "openssl.cnf.j2"
+    dest: "{{ home_dir }}/certs/openssl.cnf"
+    mode: '0644'
   tags: linux_install_harbor
 
-- name: Sign server certificate with CA
+- name: Generate server certificate and key with SANs
   ansible.builtin.shell: >
-    openssl x509 -req -days 365
-    -in {{ home_dir }}/certs/{{ ansible_host }}.csr
-    -CA {{ home_dir }}/certs/ca.crt
-    -CAkey {{ home_dir }}/certs/ca.key
-    -CAcreateserial
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048
+    -keyout {{ home_dir }}/certs/{{ ansible_host }}.key
     -out {{ home_dir }}/certs/{{ ansible_host }}.crt
+    -config {{ home_dir }}/certs/openssl.cnf
   when: not server_cert_result.stat.exists
   tags: linux_install_harbor
 
