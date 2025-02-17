@@ -68,32 +68,40 @@
 - debug:
     msg: "Docker version: {{ docker_version.stdout }}"
 
-- name: Add user to docker group
+- name: Add users to docker group
   user:
-    name: "{{ 'jenkins' if inventory_hostname in groups['jenkins'] else 'rmulenda' }}"
+    name: "{{ item }}"
     groups: docker
     append: yes
+  loop: "{{ docker_users }}"
+  become: true
   register: add_user_to_group_result
 - debug:
-    msg: "User added to docker group: {{ add_user_to_group_result.changed }}"
+    msg: "Users added to docker group: {{ add_user_to_group_result.results | map(attribute='changed') | list }}"
 
-- name: Install Docker Compose (only on Docker servers)
+- name: Ensure Docker socket has correct permissions
+  file:
+    path: /var/run/docker.sock
+    owner: root
+    group: docker
+    mode: '0660'
+  become: true
+  register: docker_socket_permissions
+- debug:
+    msg: "Docker socket permissions updated: {{ docker_socket_permissions.changed }}"
+
+- name: Install Docker Compose
   get_url:
     url: "https://github.com/docker/compose/releases/download/v2.5.0/docker-compose-linux-x86_64"
     dest: /usr/local/bin/docker-compose
-    mode: 'u+x,g+x'
-  when: inventory_hostname in groups['docker']
+    mode: '0755'  # Set execute permissions for all users
   register: install_docker_compose_result
-
 - debug:
     msg: "Docker Compose installed: {{ install_docker_compose_result }}"
-  when: inventory_hostname in groups['docker']
 
-- name: Validate Docker Compose installation (only on Docker servers)
+- name: Validate Docker Compose installation
   command: docker-compose --version
   register: docker_compose_version
   changed_when: false
-  when: inventory_hostname in groups['docker']
 - debug:
     msg: "Docker Compose version: {{ docker_compose_version.stdout }}"
-  when: inventory_hostname in groups['docker']
