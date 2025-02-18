@@ -1,0 +1,241 @@
+---
+  # Tasks to install and configure Harbor, including certificate generation.
+  
+  - name: Ensure openssl package is present
+    ansible.builtin.package:
+      name: openssl
+      state: present
+    tags: linux_install_harbor
+  
+  - name: Ensure Harbor data directory exists
+    ansible.builtin.file:
+      path: "{{ home_dir }}/data"
+      state: directory
+      mode: '0755'
+      owner: rmulenda
+      group: rmulenda
+    tags: linux_install_harbor
+  
+  - name: Ensure certs directory exists
+    ansible.builtin.file:
+      path: "{{ home_dir }}/certs"
+      state: directory
+      mode: '0700'
+      owner: rmulenda
+      group: rmulenda
+      recurse: true
+    tags: linux_install_harbor
+  
+  - name: Check if CA certificate and key exist
+    ansible.builtin.stat:
+      path: "{{ home_dir }}/certs/ca.crt"
+    register: ca_cert_result
+    tags: linux_install_harbor
+  
+  - name: Generate CA certificate and key
+    ansible.builtin.shell: >
+      openssl req -x509 -nodes -days 365 -newkey rsa:2048
+      -keyout {{ home_dir }}/certs/ca.key
+      -out {{ home_dir }}/certs/ca.crt
+      -subj "/C=US/ST=State/L=City/O=Organization/OU=Unit/CN=CA"
+    when: not ca_cert_result.stat.exists
+    tags: linux_install_harbor
+  
+  - name: Check if server certificate and key exist
+    ansible.builtin.stat:
+      path: "{{ home_dir }}/certs/{{ ansible_host }}.crt"
+    register: server_cert_result
+    tags: linux_install_harbor
+  
+  - name: Generate openssl.cnf configuration file
+    ansible.builtin.template:
+      src: "openssl.cnf.j2"
+      dest: "{{ home_dir }}/certs/openssl.cnf"
+      mode: '0644'
+    tags: linux_install_harbor
+  
+  - name: Generate server certificate and key with SANs
+    ansible.builtin.shell: >
+      openssl req -x509 -nodes -days 365 -newkey rsa:2048
+      -keyout {{ home_dir }}/certs/{{ ansible_host }}.key
+      -out {{ home_dir }}/certs/{{ ansible_host }}.crt
+      -config {{ home_dir }}/certs/openssl.cnf
+    when: not server_cert_result.stat.exists
+    tags: linux_install_harbor
+  
+  - name: Check if cert file exists
+    ansible.builtin.stat:
+      path: "{{ home_dir }}/certs/{{ ansible_host }}.cert"
+    register: cert_file_result
+    tags: linux_install_harbor
+  
+  - name: Convert crt file to cert format for Docker
+    ansible.builtin.shell: >
+      openssl x509 -inform PEM
+      -in {{ home_dir }}/certs/{{ ansible_host }}.crt
+      -out {{ home_dir }}/certs/{{ ansible_host }}.cert
+    when: not cert_file_result.stat.exists
+    tags: linux_install_harbor
+  
+  - name: Ensure certs directory permissions are updated
+    ansible.builtin.file:
+      path: "{{ home_dir }}/certs"
+      state: directory
+      mode: '0700'
+      owner: rmulenda
+      group: rmulenda
+      recurse: yes
+    tags: linux_install_harbor
+  
+  - name: Ensure Docker certs directory exists
+    ansible.builtin.file:
+      path: "/etc/docker/certs.d/{{ ansible_host }}"
+      state: directory
+      mode: '0700'
+    tags: linux_install_harbor
+  
+  - name: Copy server certificate to Docker certs directory
+    ansible.builtin.copy:
+      src: "{{ home_dir }}/certs/{{ ansible_host }}.cert"
+      dest: "/etc/docker/certs.d/{{ ansible_host }}/{{ ansible_host }}.cert"
+      remote_src: yes
+      mode: '0600'
+    tags: linux_install_harbor
+  
+  - name: Copy server key to Docker certs directory
+    ansible.builtin.copy:
+      src: "{{ home_dir }}/certs/{{ ansible_host }}.key"
+      dest: "/etc/docker/certs.d/{{ ansible_host }}/{{ ansible_host }}.key"
+      remote_src: yes
+      mode: '0600'
+    tags: linux_install_harbor
+  
+  - name: Copy CA certificate to Docker certs directory
+    ansible.builtin.copy:
+      src: "{{ home_dir }}/certs/ca.crt"
+      dest: "/etc/docker/certs.d/{{ ansible_host }}/ca.crt"
+      remote_src: yes
+      mode: '0600'
+    tags: linux_install_harbor
+  
+  - name: Ensure CA certificate is copied to trusted certificates directory
+    ansible.builtin.copy:
+      src: "{{ home_dir }}/certs/ca.crt"
+      dest: "/usr/local/share/ca-certificates/ca.crt"
+      remote_src: yes
+      mode: '0644'
+    tags: linux_install_harbor
+  
+  - name: Update CA certificates
+    ansible.builtin.command: update-ca-certificates
+    tags: linux_install_harbor
+  
+  - name: Ensure Docker service is restarted
+    ansible.builtin.service:
+      name: docker
+      state: restarted
+    tags: linux_install_harbor
+  
+  - name: Ensure Harbor installation directory exists
+    ansible.builtin.file:
+      path: "{{ home_dir }}/harbor"
+      state: directory
+      mode: '0755'
+      owner: rmulenda
+      group: rmulenda
+    tags: linux_install_harbor
+  
+  - name: Stop any running Harbor containers
+    ansible.builtin.shell: >
+      docker ps -a | grep harbor | awk '{print $1}' | xargs -r docker stop || true;
+      docker ps -a | grep harbor | awk '{print $1}' | xargs -r docker rm || true
+    tags: linux_install_harbor
+  
+  - name: Clean up Harbor installation directory
+    ansible.builtin.file:
+      path: "{{ item }}"
+      state: absent
+    loop:
+      - "{{ home_dir }}/harbor/common"
+      - "{{ home_dir }}/harbor/harbor.yml"
+      - "{{ home_dir }}/harbor/docker-compose.yml"
+    tags: linux_install_harbor
+  
+  - name: Configure Harbor with harbor.yml
+    ansible.builtin.template:
+      src: "harbor.yml.j2"
+      dest: "{{ home_dir }}/harbor/harbor.yml"
+      owner: rmulenda
+      group: rmulenda
+      mode: '0644'
+    tags: linux_install_harbor
+  
+  - name: Ensure /config directory exists
+    ansible.builtin.file:
+      path: /config
+      state: directory
+      mode: '0755'
+      owner: rmulenda
+      group: rmulenda
+    tags: linux_install_harbor
+  
+  - name: Ensure /config/portal directory exists
+    ansible.builtin.file:
+      path: /config/portal
+      state: directory
+      mode: '0755'
+      owner: rmulenda
+      group: rmulenda
+    tags: linux_install_harbor
+  
+  - name: Ensure /config/portal/nginx.conf is not a directory
+    ansible.builtin.file:
+      path: /config/portal/nginx.conf
+      state: absent
+    tags: linux_install_harbor
+  
+  - name: Ensure /data directory has correct ownership and permissions
+    ansible.builtin.file:
+      path: /data
+      state: directory
+      mode: '0755'
+      owner: rmulenda
+      group: rmulenda
+      recurse: yes
+    tags: linux_install_harbor
+  
+  - name: Ensure /data/secret directory exists
+    ansible.builtin.file:
+      path: /data/secret
+      state: directory
+      mode: '0700'
+      owner: rmulenda
+      group: rmulenda
+    tags: linux_install_harbor
+  
+  - name: Ensure /data/secret/keys directory exists
+    ansible.builtin.file:
+      path: /data/secret/keys
+      state: directory
+      mode: '0700'
+      owner: rmulenda
+      group: rmulenda
+    tags: linux_install_harbor
+  
+  - name: Ensure /data/secret/keys/secretkey is not a directory
+    ansible.builtin.file:
+      path: /data/secret/keys/secretkey
+      state: absent
+    tags: linux_install_harbor
+  
+  - name: Re-check and remove /data/secret/keys/secretkey immediately before installation
+    ansible.builtin.file:
+      path: /data/secret/keys/secretkey
+      state: absent
+    tags: linux_install_harbor
+  
+  - name: Execute Harbor installation script
+    ansible.builtin.command: "{{ home_dir }}/harbor/install.sh --with-trivy"
+    args:
+      chdir: "{{ home_dir }}/harbor"
+    tags: linux_install_harbor

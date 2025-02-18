@@ -1,0 +1,85 @@
+---
+- name: Install required packages
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - socat  # Required for acme.sh
+  become: yes
+
+- name: Download acme.sh
+  ansible.builtin.get_url:
+    url: "https://github.com/acmesh-official/acme.sh/archive/master.tar.gz"
+    dest: "/tmp/acme.sh.tar.gz"
+    mode: '0644'
+
+- name: Extract acme.sh
+  ansible.builtin.unarchive:
+    src: "/tmp/acme.sh.tar.gz"
+    dest: "/tmp"
+    remote_src: yes
+
+- name: Install acme.sh
+  ansible.builtin.command: "{{ item }}"
+  args:
+    chdir: "/tmp/acme.sh-master"
+  loop:
+    - "./acme.sh --install"
+  become: yes
+  notify: 
+    - Reload shell
+
+- name: Configure acme.sh
+  ansible.builtin.template:
+    src: "acme.sh.conf.j2"
+    dest: "/root/.acme.sh/acme.sh.conf"
+    mode: '0600'
+  become: yes
+
+- name: Ensure certificate directory exists
+  ansible.builtin.file:
+    path: "{{ acme_cert_path }}"
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Issue self-signed certificate for local testing
+  ansible.builtin.command: >
+    acme.sh --issue --self-sign -d {{ acme_domain }} --cert-file {{ acme_cert_path }}/{{ acme_domain }}.crt
+    --key-file {{ acme_cert_path }}/{{ acme_domain }}.key --ca-file {{ acme_cert_path }}/ca.crt
+  become: yes
+  register: acme_issue_result
+
+- name: Install certificate
+  ansible.builtin.command: >
+    acme.sh --install-cert -d {{ acme_domain }} --cert-file {{ acme_cert_path }}/{{ acme_domain }}.crt
+    --key-file {{ acme_cert_path }}/{{ acme_domain }}.key --ca-file {{ acme_cert_path }}/ca.crt
+  when: acme_issue_result.rc == 0
+  become: yes
+
+- name: Copy certificates for Docker
+  ansible.builtin.copy:
+    src: "{{ acme_cert_path }}/{{ item }}"
+    dest: "/etc/docker/certs.d/{{ acme_domain }}/{{ item }}"
+    remote_src: yes
+    mode: '0644'
+  loop:
+    - "{{ acme_domain }}.crt"
+    - "{{ acme_domain }}.key"
+    - "ca.crt"
+  become: yes
+  notify: Restart Docker
+
+- name: Copy CA certificate to system trust store
+  ansible.builtin.copy:
+    src: "{{ acme_cert_path }}/ca.crt"
+    dest: "/usr/local/share/ca-certificates/{{ acme_domain }}_ca.crt"
+    remote_src: yes
+    mode: '0644'
+  become: yes
+  notify: Update CA certificates
+
+- name: Ensure CA certificate is in system trust
+  ansible.builtin.command: update-ca-certificates
+  become: yes
+  changed_when: true

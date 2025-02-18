@@ -42,8 +42,17 @@
     #   when: inventory_hostname in groups['docker']
     #   tags: harbor-certificate
 
+    - name: Configure local certificates for Docker and Harbor
+      include_role:
+        name: acme_certificate
+      when: inventory_hostname in groups['docker']
+      tags: acme_certificate
+
+
     - name: Include Harbor role
       include_role:
         name: harbor
       when: inventory_hostname in groups['docker']
       tags: harbor
+
+
