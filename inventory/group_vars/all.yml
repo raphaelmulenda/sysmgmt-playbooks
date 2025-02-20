@@ -5,3 +5,8 @@ extract_dir: /home/rmulenda/Documents/Devops/harbor/stack/extracts
 harbor_repo: https://github.com/goharbor/harbor/releases/download/v2.12.2
 harbor_package: "harbor-offline-installer-v2.12.2.tgz"
 harbor_admin_password : 'Harbor12345'
+vm_ip: "192.168.1.27"  # Replace with your VM's IP
+acme_validation_method: "local"
+cert_dir: "/etc/ssl/mycerts"
+acme_sh_email: "mulendaraphael@yahoo.fr"
+docker_certs_dir: "/etc/docker/certs.d/{{ vm_ip }}"

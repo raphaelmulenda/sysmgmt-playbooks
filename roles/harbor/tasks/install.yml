@@ -1,15 +1,13 @@
----
-# tasks/main.yml - Harbor installation and configuration role
+# roles/harbor/tasks/install.yml
 
-- name: Debug home_dir and ansible_user
+- name: Debug home_dir, ansible_user, cert_dir, and vm_ip
   ansible.builtin.debug:
-    msg: "home_dir={{ home_dir }}, ansible_user={{ ansible_user }}"
-  tags: linux_install_harbor
-
-- name: Ensure sscg package is present
-  ansible.builtin.package:
-    name: sscg
-    state: present
+    msg: >
+      home_dir={{ home_dir }},
+      ansible_user={{ ansible_user }},
+      cert_dir={{ cert_dir }},
+      vm_ip={{ vm_ip }},
+      docker_certs_dir={{ docker_certs_dir }}
   tags: linux_install_harbor
 
 - name: Ensure Harbor directories exist
@@ -21,127 +19,99 @@
     group: "{{ ansible_user }}"
   loop:
     - "{{ home_dir }}/data"
-    - "{{ home_dir }}/certs"
     - "{{ home_dir }}/harbor"
   tags: linux_install_harbor
 
-- name: Ensure certs directory has correct permissions
+- name: Ensure job log directory exists
   ansible.builtin.file:
-    path: "{{ home_dir }}/certs"
-    state: directory
-    mode: '0700'
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    recurse: yes
-  tags: linux_install_harbor
-
-- name: Check if CA certificate exists
-  ansible.builtin.stat:
-    path: "{{ home_dir }}/certs/ca.crt"
-  register: ca_cert_result
-  tags: linux_install_harbor
-
-- name: Remove existing CA certificate and key (to force regeneration)
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - "{{ home_dir }}/certs/ca.crt"
-    - "{{ home_dir }}/certs/ca.key"
-  when: ca_cert_result.stat.exists
-  tags: linux_install_harbor
-
-- name: Generate CA certificate and key using sscg
-  ansible.builtin.command: >
-    sscg --hostname CA --cert-file ca.crt --cert-key-file ca.key --force
-  args:
-    chdir: "{{ home_dir }}/certs"
-  when: not ca_cert_result.stat.exists
-  tags: linux_install_harbor
-
-- name: Check if server certificate exists
-  ansible.builtin.stat:
-    path: "{{ home_dir }}/certs/{{ ansible_host }}.crt"
-  register: server_cert_result
-  tags: linux_install_harbor
-
-- name: Remove existing server certificate and key (to force regeneration)
-  ansible.builtin.file:
-    path: "{{ home_dir }}/certs/{{ ansible_host }}.{{ item }}"
-    state: absent
-  loop:
-    - "crt"
-    - "key"
-  when: server_cert_result.stat.exists
-  tags: linux_install_harbor
-
-- name: Generate server certificate and key with SAN using sscg
-  # IMPORTANT: Use a proper FQDN instead of the IP if possible. For example, set:
-  #   ansible_host: harbor.example.com
-  # and update DNS accordingly.
-  ansible.builtin.command: >
-    sscg --hostname {{ ansible_host }} --subject-alt-name {{ ansible_host }}
-    --cert-file {{ ansible_host }}.crt --cert-key-file {{ ansible_host }}.key
-    --ca-file ca.crt --ca-key-file ca.key --force
-  args:
-    chdir: "{{ home_dir }}/certs"
-  when: not server_cert_result.stat.exists
-  tags: linux_install_harbor
-
-- name: Check if converted cert file exists
-  ansible.builtin.stat:
-    path: "{{ home_dir }}/certs/{{ ansible_host }}.cert"
-  register: cert_file_result
-  tags: linux_install_harbor
-
-- name: Convert crt file to cert format for Docker
-  ansible.builtin.shell: >
-    openssl x509 -inform PEM -in {{ ansible_host }}.crt -out {{ ansible_host }}.cert
-  args:
-    chdir: "{{ home_dir }}/certs"
-  when: not cert_file_result.stat.exists
-  tags: linux_install_harbor
-
-- name: Ensure Docker certs directory exists
-  ansible.builtin.file:
-    path: "/etc/docker/certs.d/{{ ansible_host }}"
-    state: directory
-    mode: '0700'
-  tags: linux_install_harbor
-
-- name: Copy server certificates to Docker certs directory
-  ansible.builtin.copy:
-    src: "{{ home_dir }}/certs/{{ item }}"
-    dest: "/etc/docker/certs.d/{{ ansible_host }}/{{ item }}"
-    remote_src: yes
-    mode: '0644'
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-  loop:
-    - "{{ ansible_host }}.cert"
-    - "{{ ansible_host }}.key"
-    - "ca.crt"
-  tags: linux_install_harbor
-  notify: Restart Docker
-
-- name: Ensure CA certificate is copied to trusted certificates directory
-  ansible.builtin.copy:
-    src: "{{ home_dir }}/certs/ca.crt"
-    dest: "/usr/local/share/ca-certificates/ca.crt"
-    remote_src: yes
-    mode: '0644'
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-  tags: linux_install_harbor
-  notify: Update CA certificates
-
-- name: Ensure Harbor installation directory exists
-  ansible.builtin.file:
-    path: "{{ home_dir }}/harbor"
+    path: "{{ home_dir }}/data/log/job_logs"
     state: directory
     mode: '0755'
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
+  tags: linux_install_harbor
+
+- name: Debug certificate directory listing
+  ansible.builtin.debug:
+    var: cert_dir_listing.stdout_lines
+  tags: linux_install_harbor
+
+- name: Verify that local certificate exists
+  ansible.builtin.stat:
+    path: "{{ cert_dir }}/{{ vm_ip }}.crt"
+  register: local_cert
+  tags: linux_install_harbor
+
+- name: Fail if local certificate does not exist
+  ansible.builtin.fail:
+    msg: "Local certificate {{ cert_dir }}/{{ vm_ip }}.crt not found. Please run the certificate role first."
+  when: not local_cert.stat.exists
+  tags: linux_install_harbor
+
+- name: Ensure Docker certs directory exists for our VM IP
+  ansible.builtin.file:
+    path: "{{ docker_certs_dir }}"
+    state: directory
+    mode: '0755'
+  become: yes
+  tags: linux_install_harbor
+
+- name: Remove any existing client certificate from Docker certs directory
+  ansible.builtin.file:
+    path: "{{ docker_certs_dir }}/{{ vm_ip }}.cert"
+    state: absent
+  become: yes
+  tags: linux_install_harbor
+
+- name: Copy local certificate to Docker certs directory as client certificate
+  ansible.builtin.copy:
+    src: "{{ cert_dir }}/{{ vm_ip }}.crt"
+    dest: "{{ docker_certs_dir }}/{{ vm_ip }}.cert"
+    mode: '0644'
+    remote_src: yes
+  become: yes
+  tags: linux_install_harbor
+
+- name: Copy local key to Docker certs directory
+  ansible.builtin.copy:
+    src: "{{ cert_dir }}/{{ vm_ip }}.key"
+    dest: "{{ docker_certs_dir }}/{{ vm_ip }}.key"
+    mode: '0600'
+    remote_src: yes
+  become: yes
+  tags: linux_install_harbor
+
+- name: Copy certificates to /etc/harbor/ssl
+  ansible.builtin.copy:
+    src: "{{ cert_dir }}/{{ item }}"
+    dest: "/etc/harbor/ssl/{{ item }}"
+    mode: '0644'
+    remote_src: yes
+  loop:
+    - "{{ vm_ip }}.crt"
+    - "{{ vm_ip }}.key"
+  become: yes
+  tags: linux_install_harbor
+
+- name: Render Harbor configuration file from template
+  ansible.builtin.template:
+    src: "harbor.yml.j2"
+    dest: "{{ home_dir }}/harbor/harbor.yml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0644'
+  tags: linux_install_harbor
+
+- name: Verify harbor.yml file exists
+  ansible.builtin.stat:
+    path: "{{ home_dir }}/harbor/harbor.yml"
+  register: harbor_yml
+  tags: linux_install_harbor
+
+- name: Fail if harbor.yml is missing
+  ansible.builtin.fail:
+    msg: "harbor.yml file not found at {{ home_dir }}/harbor/harbor.yml. Please check the template and configuration."
+  when: not harbor_yml.stat.exists
   tags: linux_install_harbor
 
 - name: Stop any running Harbor containers
@@ -152,28 +122,17 @@
     executable: /bin/bash
   tags: linux_install_harbor
 
-- name: Clean up Harbor installation directory
+- name: Clean up Harbor installation directory (remove old artifacts except harbor.yml)
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent
   loop:
     - "{{ home_dir }}/harbor/common"
-    - "{{ home_dir }}/harbor/harbor.yml"
     - "{{ home_dir }}/harbor/docker-compose.yml"
   tags: linux_install_harbor
 
-- name: Configure Harbor with harbor.yml
-  ansible.builtin.template:
-    src: "harbor.yml.j2"
-    dest: "{{ home_dir }}/harbor/harbor.yml"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: '0644'
-  tags: linux_install_harbor
-
-- name: Execute Harbor installation script
+- name: Execute Harbor installation script with Trivy enabled
   ansible.builtin.command: "{{ home_dir }}/harbor/install.sh --with-trivy"
   args:
     chdir: "{{ home_dir }}/harbor"
   tags: linux_install_harbor
-

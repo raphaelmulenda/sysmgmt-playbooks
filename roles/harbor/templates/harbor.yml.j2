@@ -1,87 +1,55 @@
 # Configuration file of Harbor
 
 # The IP address or hostname to access admin UI and registry service.
-# DO NOT use localhost or 127.0.0.1, because Harbor needs to be accessed by external clients.
-hostname: {{ ansible_host }}
+hostname: {{ vm_ip }}
 
-# http related config
 http:
-  # port for http, default is 80. If https enabled, this port will redirect to https port
   port: 80
 
-# https related config
 https:
-  # https port for harbor, default is 443
   port: 443
-  # The path of cert and key files for nginx
-  certificate: {{ home_dir }}/certs/{{ ansible_host }}.crt
-  private_key: {{ home_dir }}/certs/{{ ansible_host }}.key
-  # enable strong ssl ciphers (default: false)
-  # strong_ssl_ciphers: false
+  certificate: {{ cert_dir }}/{{ vm_ip }}.crt
+  private_key: {{ cert_dir }}/{{ vm_ip }}.key
 
-# The initial password of Harbor admin
-# It only works in first time to install harbor
-# Remember Change it from UI after launching Harbor
 harbor_admin_password: {{ harbor_admin_password | default('Harbor12345') }}
 
-# The default data volume
 data_volume: {{ home_dir }}/data
 
-# Harbor DB configuration
 database:
-  # The password for the root user of Harbor DB.
-  # Change this before installing Harbor in production.
   password: {{ harbor_db_password | default('root123') }}
-  # The maximum number of connections in the idle connection pool
   max_idle_conns: 100
-  # The maximum number of open connections to the database
   max_open_conns: 900
 
-# The default storage configuration
 storage:
-  # Use local filesystem as storage backend
   filesystem:
     rootdirectory: {{ home_dir }}/data/storage
     maxthreads: 100
 
-# Job service configuration
 jobservice:
-  # Maximum number of job workers in job service
   max_job_workers: {{ harbor_max_job_workers | default(10) }}
-  # Job loggers configuration
   job_loggers: {{ harbor_job_loggers | default(['file']) }}
-  # Duration in days for which job logs are retained
   logger_sweeper_duration: {{ harbor_logger_sweeper_duration | default(14) }}
 
-# Notification configuration
+log:
+  level: info
+  local:
+    rotate_count: 15
+    rotate_size: 200M
+    location: /var/log/jobs
+  job:
+    level: info
+    rotate_count: 50
+    rotate_size: 200M
+    location: /var/log/harbor
+
 notification:
-  # Maximum number of retries for webhook jobs
   webhook_job_max_retry: {{ harbor_webhook_job_max_retry | default(10) }}
-  # HTTP client timeout for webhook jobs (in seconds)
   webhook_job_http_client_timeout: {{ harbor_webhook_job_http_client_timeout | default(5) }}
 
-# Log configuration
-log:
-  # Log level: debug, info, warning, error
-  level: info
-  # Log location, local means the logs will be stored in the local filesystem
-  local:
-    # The number of log files to keep
-    rotate_count: 15
-    # The maximum size of each log file in MB
-    rotate_size: 200M
-    # The directory to store the logs
-    location: {{ home_dir }}/data/log
-
-# Enable Trivy vulnerability scanner
 trivy:
-  # Enable Trivy
   enabled: true
-  # The severity levels of vulnerabilities to skip
   ignore_unfixed: true
   skip_update: false
-  # Offline scan mode
   offline_scan: false
-  # Security check configuration
   security_check:
     severity: "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"

@@ -1,6 +1,8 @@
----
 - name: Reload shell
-  ansible.builtin.shell: ". /etc/profile"
+  ansible.builtin.shell: |
+    source /root/.bashrc
+  args:
+    executable: /bin/bash
 
 - name: Restart Docker
   ansible.builtin.service:

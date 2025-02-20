@@ -1,85 +1,79 @@
 ---
-- name: Install required packages
-  ansible.builtin.package:
-    name: "{{ item }}"
-    state: present
-  loop:
-    - socat  # Required for acme.sh
-  become: yes
+# roles/certificate/tasks/main.yml
 
-- name: Download acme.sh
-  ansible.builtin.get_url:
-    url: "https://github.com/acmesh-official/acme.sh/archive/master.tar.gz"
-    dest: "/tmp/acme.sh.tar.gz"
-    mode: '0644'
-
-- name: Extract acme.sh
-  ansible.builtin.unarchive:
-    src: "/tmp/acme.sh.tar.gz"
-    dest: "/tmp"
-    remote_src: yes
-
-- name: Install acme.sh
-  ansible.builtin.command: "{{ item }}"
-  args:
-    chdir: "/tmp/acme.sh-master"
-  loop:
-    - "./acme.sh --install"
-  become: yes
-  notify: 
-    - Reload shell
-
-- name: Configure acme.sh
-  ansible.builtin.template:
-    src: "acme.sh.conf.j2"
-    dest: "/root/.acme.sh/acme.sh.conf"
-    mode: '0600'
-  become: yes
-
-- name: Ensure certificate directory exists
+- name: Ensure local certificate directory exists
   ansible.builtin.file:
-    path: "{{ acme_cert_path }}"
+    path: "{{ cert_dir }}"
+    state: directory
+    mode: '0755'
+  tags: certificate
+
+- name: Generate a self-signed certificate with IP SAN using OpenSSL
+  ansible.builtin.shell: |
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+      -subj "/C=US/ST=State/L=City/O=Organization/OU=Unit/CN={{ vm_ip }}" \
+      -addext "subjectAltName = IP:{{ vm_ip }}" \
+      -keyout {{ cert_dir }}/{{ vm_ip }}.key \
+      -out {{ cert_dir }}/{{ vm_ip }}.crt
+  args:
+    creates: "{{ cert_dir }}/{{ vm_ip }}.crt"
+  become: yes
+  tags: certificate
+
+- name: Ensure Docker certs directory exists for our VM IP
+  ansible.builtin.file:
+    path: "{{ docker_certs_dir }}"
     state: directory
     mode: '0755'
   become: yes
+  tags: certificate
 
-- name: Issue self-signed certificate for local testing
-  ansible.builtin.command: >
-    acme.sh --issue --self-sign -d {{ acme_domain }} --cert-file {{ acme_cert_path }}/{{ acme_domain }}.crt
-    --key-file {{ acme_cert_path }}/{{ acme_domain }}.key --ca-file {{ acme_cert_path }}/ca.crt
-  become: yes
-  register: acme_issue_result
-
-- name: Install certificate
-  ansible.builtin.command: >
-    acme.sh --install-cert -d {{ acme_domain }} --cert-file {{ acme_cert_path }}/{{ acme_domain }}.crt
-    --key-file {{ acme_cert_path }}/{{ acme_domain }}.key --ca-file {{ acme_cert_path }}/ca.crt
-  when: acme_issue_result.rc == 0
-  become: yes
-
-- name: Copy certificates for Docker
+- name: Copy generated certificate to Docker certs directory
   ansible.builtin.copy:
-    src: "{{ acme_cert_path }}/{{ item }}"
-    dest: "/etc/docker/certs.d/{{ acme_domain }}/{{ item }}"
-    remote_src: yes
+    src: "{{ cert_dir }}/{{ vm_ip }}.crt"
+    dest: "{{ docker_certs_dir }}/ca.crt"
     mode: '0644'
-  loop:
-    - "{{ acme_domain }}.crt"
-    - "{{ acme_domain }}.key"
-    - "ca.crt"
+    remote_src: yes
   become: yes
-  notify: Restart Docker
+  tags: certificate
 
-- name: Copy CA certificate to system trust store
+- name: Copy generated key to Docker certs directory (optional)
   ansible.builtin.copy:
-    src: "{{ acme_cert_path }}/ca.crt"
-    dest: "/usr/local/share/ca-certificates/{{ acme_domain }}_ca.crt"
+    src: "{{ cert_dir }}/{{ vm_ip }}.key"
+    dest: "{{ docker_certs_dir }}/{{ vm_ip }}.key"
+    mode: '0600'
     remote_src: yes
-    mode: '0644'
   become: yes
-  notify: Update CA certificates
+  tags: certificate
 
-- name: Ensure CA certificate is in system trust
+- name: Copy certificate to system trusted CA directory
+  ansible.builtin.copy:
+    src: "{{ cert_dir }}/{{ vm_ip }}.crt"
+    dest: "/usr/local/share/ca-certificates/{{ vm_ip }}.crt"
+    mode: '0644'
+    remote_src: yes
+  become: yes
+  tags: certificate
+
+- name: Update system CA certificates
   ansible.builtin.command: update-ca-certificates
   become: yes
-  changed_when: true
+  tags: certificate
+
+- name: Restart Docker to pick up new certificates
+  ansible.builtin.service:
+    name: docker
+    state: restarted
+  become: yes
+  tags: certificate
+
+- name: Display Docker info for verification
+  ansible.builtin.command: docker info
+  register: docker_info
+  changed_when: false
+  tags: certificate
+
+- name: Debug Docker info output
+  ansible.builtin.debug:
+    var: docker_info.stdout
+  tags: certificate

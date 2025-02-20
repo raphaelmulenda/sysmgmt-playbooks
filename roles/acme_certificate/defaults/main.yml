@@ -1,4 +1,6 @@
 ---
-acme_domain: "192.168.1.27"  # Replace with your VM's IP
+vm_ip: "192.168.1.27"  # Replace with your VM's IP
 acme_validation_method: "local"
-acme_cert_path: "/etc/ssl/acme"
+cert_dir: "/etc/ssl/mycerts"
+acme_sh_email: "mulendaraphael@yahoo.fr"
+docker_certs_dir: "/etc/docker/certs.d/{{ vm_ip }}"
