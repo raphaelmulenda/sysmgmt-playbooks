@@ -1,6 +1,6 @@
 - name: Provision CI/CD GitHub Actions Runner
   hosts:
-    - github-runner
+    - 'github-runners'
   gather_facts: yes
   become: true
   pre_tasks:
