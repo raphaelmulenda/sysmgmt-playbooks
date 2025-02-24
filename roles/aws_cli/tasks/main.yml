@@ -1,4 +1,40 @@
 ---
+- name: Fix Docker repository GPG key issues (Debian/Ubuntu)
+  block:
+    - name: Remove old Docker keyring if exists
+      file:
+        path: /etc/apt/trusted.gpg.d/docker.gpg
+        state: absent
+      become: yes
+
+    - name: Add Docker official GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      become: yes
+
+    - name: Ensure APT keyring directory exists
+      file:
+        path: /usr/share/keyrings
+        state: directory
+        mode: '0755'
+      become: yes
+
+    - name: Add Docker key to modern keyring
+      get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /usr/share/keyrings/docker-archive-keyring.gpg
+        mode: '0644'
+      become: yes
+
+    - name: Update Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        update_cache: yes
+      become: yes
+  when: ansible_os_family == "Debian"
+
 - name: Install prerequisites (Debian/Ubuntu)
   apt:
     name:
@@ -8,6 +44,10 @@
     update_cache: yes
   when: ansible_os_family == "Debian"
   become: yes
+  register: apt_install
+  retries: 3
+  delay: 5
+  until: apt_install is success
 
 - name: Install prerequisites (RedHat/CentOS)
   yum:
