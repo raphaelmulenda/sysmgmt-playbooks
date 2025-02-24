@@ -1,0 +1,6 @@
+---
+runner_version: "2.322.0"
+runner_dir: "/home/{{ ansible_user }}/actions-runner"
+runner_url: "https://github.com/actions/runner/releases/download/v{{ runner_version }}/actions-runner-linux-x64-{{ runner_version }}.tar.gz"
+runner_user: "{{ ansible_user }}"
+github_url: "https://github.com/Opsmiths-Technologies"

@@ -1,0 +1,53 @@
+---
+- name: Ensure dependencies are installed
+  apt:
+    name:
+      - curl
+      - jq
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: Create the runner directory
+  file:
+    path: "{{ runner_dir }}"
+    state: directory
+    owner: "{{ runner_user }}"
+    group: "{{ runner_user }}"
+    mode: '0755'
+
+- name: Download GitHub Actions Runner
+  get_url:
+    url: "{{ runner_url }}"
+    dest: "{{ runner_dir }}/actions-runner-linux-x64.tar.gz"
+    mode: '0644'
+
+- name: Extract the runner
+  unarchive:
+    src: "{{ runner_dir }}/actions-runner-linux-x64.tar.gz"
+    dest: "{{ runner_dir }}"
+    remote_src: yes
+
+- name: Configure the GitHub Actions Runner
+  command: "./config.sh --url {{ github_url }} --token {{ runner_token }}"
+  args:
+    chdir: "{{ runner_dir }}"
+  become: yes
+
+- name: Copy systemd service file
+  template:
+    src: github_runner.service.j2
+    dest: /etc/systemd/system/github-runner.service
+  become: yes
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+  become: yes
+
+- name: Enable GitHub Actions Runner Service
+  systemd:
+    name: github-runner
+    enabled: yes
+    state: started
+  become: yes

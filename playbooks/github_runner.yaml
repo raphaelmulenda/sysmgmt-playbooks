@@ -1,0 +1,14 @@
+- name: Provision CI/CD GitHub Actions Runner
+  hosts:
+    - github-runner
+  gather_facts: yes
+  become: true
+  pre_tasks:
+    - name: Ensure servers are reachable
+      ping:
+
+  tasks:
+    - name: Setup GitHub Actions Runner
+      include_role:
+        name: github_runner
+      tags: github_runner
