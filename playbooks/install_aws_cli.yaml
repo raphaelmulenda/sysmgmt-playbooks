@@ -1,0 +1,15 @@
+- name: Provision CI/CD infrastructure
+  hosts:
+    - jenkins
+    - docker
+  gather_facts: yes
+  become: true
+  pre_tasks:
+    - name: Ensure servers are reachable
+      ping:
+
+  tasks:
+    - name: Install AWS CLI on servers
+      include_role:
+        name: aws_cli
+      tags: aws_cli
