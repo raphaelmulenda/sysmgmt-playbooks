@@ -1,4 +1,6 @@
 ---
+# roles/github_runner/tasks/main.yml
+
 - name: Ensure dependencies are installed
   apt:
     name:
@@ -7,6 +9,7 @@
     state: present
     update_cache: yes
   become: yes
+  tags: github_runner
 
 - name: Create the runner directory
   file:
@@ -15,39 +18,70 @@
     owner: "{{ runner_user }}"
     group: "{{ runner_user }}"
     mode: '0755'
+  become: yes
+  tags: github_runner
 
 - name: Download GitHub Actions Runner
   get_url:
     url: "{{ runner_url }}"
     dest: "{{ runner_dir }}/actions-runner-linux-x64.tar.gz"
     mode: '0644'
+  become: yes
+  become_user: "{{ runner_user }}"
+  tags: github_runner
 
 - name: Extract the runner
   unarchive:
     src: "{{ runner_dir }}/actions-runner-linux-x64.tar.gz"
     dest: "{{ runner_dir }}"
     remote_src: yes
+    extra_opts: ["--no-same-owner"]
+  become: yes
+  become_user: "{{ runner_user }}"
+  tags: github_runner
+
+- name: Ensure config.sh is executable
+  file:
+    path: "{{ runner_dir }}/config.sh"
+    mode: '0755'
+  become: yes
+  become_user: "{{ runner_user }}"
+  tags: github_runner
 
 - name: Configure the GitHub Actions Runner
-  command: "./config.sh --url {{ github_url }} --token {{ runner_token }}"
+  command: "./config.sh --url {{ github_url }} --token {{ runner_token }} --unattended --replace"
   args:
     chdir: "{{ runner_dir }}"
-  become: yes
+  become: no
+  become_user: "{{ runner_user }}"
+  register: config_result
+  failed_when: config_result.rc != 0 and "already exists" not in config_result.stderr
+  tags: github_runner
 
-- name: Copy systemd service file
+- name: Debug configuration output
+  debug:
+    var: config_result
+  when: config_result is failed
+  tags: github_runner
+
+- name: Copy systemd service file for the runner
   template:
     src: github_runner.service.j2
     dest: /etc/systemd/system/github-runner.service
+    mode: '0644'
   become: yes
+  tags: github_runner
 
 - name: Reload systemd daemon
   systemd:
     daemon_reload: yes
   become: yes
+  tags: github_runner
 
-- name: Enable GitHub Actions Runner Service
+- name: Enable and start GitHub Actions Runner Service
   systemd:
     name: github-runner
     enabled: yes
     state: started
   become: yes
+  tags: github_runner

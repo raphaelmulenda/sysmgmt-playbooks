@@ -6,8 +6,9 @@ After=network.target
 ExecStart={{ runner_dir }}/run.sh
 WorkingDirectory={{ runner_dir }}
 User={{ runner_user }}
+Group={{ runner_user }}
 Restart=always
-RestartSec=5
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
