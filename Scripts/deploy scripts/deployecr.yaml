@@ -1,0 +1,40 @@
+---
+- name: Deploy Application
+  hosts: docker
+  become: true
+  vars:
+    harbor_registry: "192.168.1.27:8080"
+  tasks:
+    - name: Set environment variable for image tag
+      set_fact:
+        image_tag: "{{ image.split(':')[-1] }}"
+        app_dir: "/opt/apps/{{ app_name }}"
+
+    - name: Substitute variables in docker-compose.yml
+      shell: |
+        envsubst < {{ app_dir }}/docker-compose.yml.template > {{ app_dir }}/docker-compose.yml
+      environment:
+        app_name: "{{ app_name }}"
+        image_tag: "{{ image_tag }}"
+        harbor_registry: "{{ harbor_registry }}"
+      delegate_to: "{{ inventory_hostname }}"
+
+    - name: Log in to Harbor registry on Docker server
+      shell: |
+        echo "{{ harbor_password }}" | docker login -u "{{ harbor_username }}" --password-stdin "{{ harbor_registry }}"
+      environment:
+        harbor_username: "{{ harbor_username }}"
+        harbor_password: "{{ harbor_password }}"
+      delegate_to: "{{ inventory_hostname }}"  # Ensure this runs on the Docker server
+
+    - name: Pull latest image from Harbor on Docker server
+      command: "docker-compose pull"
+      args:
+        chdir: "{{ app_dir }}"
+      delegate_to: "{{ inventory_hostname }}"
+
+    - name: Restart the application with new image on Docker server
+      command: "docker-compose up -d"
+      args:
+        chdir: "{{ app_dir }}"
+      delegate_to: "{{ inventory_hostname }}"

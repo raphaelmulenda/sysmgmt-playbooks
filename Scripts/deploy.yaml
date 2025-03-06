@@ -1,39 +1,37 @@
 ---
-- name: Deploy Application
-  hosts: docker
-  become: true
-  vars:
-    harbor_registry: "192.168.1.27:8080"
+- name: Deploy Docker Container using ECR image
+  hosts: servers
   tasks:
     - name: Set environment variable for image tag
       set_fact:
         image_tag: "{{ image.split(':')[-1] }}"
         app_dir: "/opt/apps/{{ app_name }}"
-
-    - name: Substitute variables in docker-compose.yml
+    
+    - name: Substitute variables in docker-compose template
       shell: |
         envsubst < {{ app_dir }}/docker-compose.yml.template > {{ app_dir }}/docker-compose.yml
       environment:
         app_name: "{{ app_name }}"
         image_tag: "{{ image_tag }}"
-        harbor_registry: "{{ harbor_registry }}"
-      delegate_to: "{{ inventory_hostname }}"
-
-    - name: Log in to Harbor registry on Docker server
+        ecr_registry: "{{ image.split('/')[0] }}"
+      args:
+        chdir: "{{ app_dir }}"
+    
+    - name: Authenticate Docker with ECR on target server
       shell: |
-        echo "{{ harbor_password }}" | docker login -u "{{ harbor_username }}" --password-stdin "{{ harbor_registry }}"
-      environment:
-        harbor_username: "{{ harbor_username }}"
-        harbor_password: "{{ harbor_password }}"
-      delegate_to: "{{ inventory_hostname }}"  # Ensure this runs on the Docker server
-
-    - name: Pull latest image from Harbor on Docker server
+        aws configure set aws_access_key_id {{ aws_access_key }}
+        aws configure set aws_secret_access_key {{ aws_secret_key }}
+        aws configure set region {{ aws_region }}
+        aws ecr get-login-password --region {{ aws_region }} | docker login --username AWS --password-stdin {{ image.split('/')[0] }}
+      delegate_to: "{{ inventory_hostname }}"
+    
+    - name: Pull latest image from ECR on target server
       command: "docker-compose pull"
       args:
         chdir: "{{ app_dir }}"
       delegate_to: "{{ inventory_hostname }}"
-
-    - name: Restart the application with new image on Docker server
+    
+    - name: Restart the application with new image on target server
       command: "docker-compose up -d"
       args:
         chdir: "{{ app_dir }}"
