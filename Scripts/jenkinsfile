@@ -3,6 +3,7 @@ pipeline {
     environment {
         AWS_REGION      = "eu-central-1"
         ECR_REPOSITORY  = "cicd-infra"
+        APP_NAME        = "cicd-test-app"
         IMAGE_NAME      = "cicd-test-app"
         IMAGE_TAG       = "${env.BUILD_NUMBER}"
         AWS_ACCOUNT_ID  = "225320283044"
@@ -42,7 +43,7 @@ pipeline {
                     // Passing the dynamic image name as an extra variable to the playbook.
                     sh """
                     ansible-playbook -i /etc/ansible/inventory.ini /etc/ansible/deploy.yml \
-                    --extra-vars "image=$ECR_URL/$ECR_REPOSITORY:$IMAGE_TAG app_name=$IMAGE_NAME aws_access_key=$AWS_ACCESS_KEY_ID aws_secret_key=$AWS_SECRET_ACCESS_KEY aws_region=$AWS_REGION"
+                    --extra-vars "image=$ECR_URL/$ECR_REPOSITORY:$IMAGE_TAG app_name=$APP_NAME aws_access_key=$AWS_ACCESS_KEY_ID aws_secret_key=$AWS_SECRET_ACCESS_KEY aws_region=$AWS_REGION"
                     """
                 }
             }

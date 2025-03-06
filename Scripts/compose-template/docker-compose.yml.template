@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   ${app_name}:
-    image: ${image}  
+    image: ${ecr_registry}/${ecr_registry}:${image}  # Corrected to use ecr_registry
     container_name: ${app_name}
     restart: always
     ports:

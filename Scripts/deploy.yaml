@@ -1,22 +1,31 @@
 ---
 - name: Deploy Docker Container using ECR image
-  hosts: servers
+  hosts: docker
+  become: true  
   tasks:
-    - name: Set environment variable for image tag
+    - name: Set environment variable for app directory
       set_fact:
-        image_tag: "{{ image.split(':')[-1] }}"
         app_dir: "/opt/apps/{{ app_name }}"
-    
+
     - name: Substitute variables in docker-compose template
       shell: |
         envsubst < {{ app_dir }}/docker-compose.yml.template > {{ app_dir }}/docker-compose.yml
       environment:
         app_name: "{{ app_name }}"
-        image_tag: "{{ image_tag }}"
-        ecr_registry: "{{ image.split('/')[0] }}"
+        image: "{{ image }}"  # Ensure the full ECR URL is passed
       args:
         chdir: "{{ app_dir }}"
-    
+      register: substitution_result
+      changed_when: true  # Force this task to be marked as changed
+
+    - name: Debug generated docker-compose.yml
+      command: "cat {{ app_dir }}/docker-compose.yml"
+      register: debug_output
+      delegate_to: "{{ inventory_hostname }}"
+
+    - debug:
+        var: debug_output.stdout
+
     - name: Authenticate Docker with ECR on target server
       shell: |
         aws configure set aws_access_key_id {{ aws_access_key }}
@@ -24,13 +33,13 @@
         aws configure set region {{ aws_region }}
         aws ecr get-login-password --region {{ aws_region }} | docker login --username AWS --password-stdin {{ image.split('/')[0] }}
       delegate_to: "{{ inventory_hostname }}"
-    
+
     - name: Pull latest image from ECR on target server
       command: "docker-compose pull"
       args:
         chdir: "{{ app_dir }}"
       delegate_to: "{{ inventory_hostname }}"
-    
+
     - name: Restart the application with new image on target server
       command: "docker-compose up -d"
       args:

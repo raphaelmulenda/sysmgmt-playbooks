@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   ${app_name}:
-    image: ${image}  
+    image: ${harbor_registry}/cicd-infra/${app_name}:${image_tag}  # Use harbor_registry, app_name, and image_tag
     container_name: ${app_name}
     restart: always
     ports:
