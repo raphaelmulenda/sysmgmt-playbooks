@@ -63,3 +63,7 @@ docker ansible_host=192.168.1.27 ansible_user=rmulenda
 
 [git-runners]
 git-runners ansible_host=192.168.1.28 ansible_user=rmulenda
+
+
+[dev23]
+dev23 ansible_host=10.50.41.18 ansible_user=root
