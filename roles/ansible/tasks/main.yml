@@ -1,8 +1,31 @@
 ---
-- name: Install Ansible
-  apt:
-    name: ansible
+- name: Ensure EPEL repository is enabled on Red Hat-based systems
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+  when: ansible_os_family == "RedHat"
+  register: epel_install_result
+  failed_when: epel_install_result.failed and 'already installed' not in epel_install_result.msg
+
+- name: Ensure Ansible package name is set based on OS
+  ansible.builtin.set_fact:
+    ansible_package_name: "{{ 'ansible-core' if ansible_os_family == 'RedHat' and ansible_distribution_major_version | int >= 8 else 'ansible' }}"
+
+- name: Install Ansible using package manager
+  ansible.builtin.package:
+    name: "{{ ansible_package_name }}"
     state: present
   register: ansible_install_result
-- debug:
-    msg: "Ansible installed: {{ ansible_install_result.changed }}"
+  when: ansible_os_family in ['Debian', 'RedHat', 'Suse', 'Archlinux']
+
+- name: Install Ansible using pip on unsupported systems
+  ansible.builtin.pip:
+    name: ansible
+    state: present
+    executable: pip3
+  register: ansible_pip_install_result
+  when: ansible_os_family not in ['Debian', 'RedHat', 'Suse', 'Archlinux']
+
+- name: Debug Ansible installation result
+  ansible.builtin.debug:
+    msg: "Ansible installed: {{ (ansible_install_result.changed if ansible_install_result is defined else ansible_pip_install_result.changed) }}"
