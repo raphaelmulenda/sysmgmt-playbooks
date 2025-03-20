@@ -1,0 +1,19 @@
+- name: Provision CI/CD infrastructure
+  hosts:
+    - 'dev23'
+  gather_facts: yes
+  become: true
+  pre_tasks:
+    - name: Ensure servers are reachable
+      ping:
+
+  tasks:
+    - name: Include Ansible role
+      include_role:
+        name: ansible
+      when: inventory_hostname in groups['dev23']
+      tags: ansible
+
+
+
+
